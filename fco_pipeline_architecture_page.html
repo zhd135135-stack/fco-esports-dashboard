@@ -1,0 +1,657 @@
+<!DOCTYPE html>
+<html lang="ko" class="theme-dark">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>FCO Esports · 데이터 파이프라인 아키텍처</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@400;500;600;700;800;900&family=Inter:wght@400;500;600;700;800;900&display=swap" rel="stylesheet">
+<script src="https://cdn.jsdelivr.net/npm/html-to-image@1.11.11/dist/html-to-image.js"></script>
+<style>
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+:root{interpolate-size:allow-keywords}
+
+html.theme-dark{
+  --bg:#0D0D14;--sf:#13131F;--sf2:#181828;--sfh:#1E1E32;
+  --bd:rgba(108,99,255,.15);--bds:rgba(255,255,255,.05);
+  --tx:#E8E8F0;--tx2:#8888AA;--tx3:#4A4A6A;
+  --ac:#7C6FFF;--ac2:#4FC3F7;
+  --gn:#4FFFB0;--yw:#FFD166;--pu:#C084FC;--rd:#FF6B7A;
+  --s1:#7C6FFF;--s2:#4FC3F7;--s3:#C084FC;
+}
+html.theme-light{
+  --bg:#F0F0FA;--sf:#FFFFFF;--sf2:#F4F4FF;--sfh:#EAEAFF;
+  --bd:rgba(100,90,240,.13);--bds:rgba(0,0,0,.06);
+  --tx:#0F0F1E;--tx2:#5A5A8A;--tx3:#AAAAC8;
+  --ac:#5B50E0;--ac2:#0088BB;
+  --gn:#008F5E;--yw:#9A6600;--pu:#7730C8;--rd:#D02030;
+  --s1:#5B50E0;--s2:#0088BB;--s3:#7730C8;
+}
+
+/* ─ 한글 줄바꿈 핵심 ─ */
+body{
+  font-family:'Noto Sans KR','Inter',sans-serif;
+  background:var(--bg);color:var(--tx);
+  -webkit-font-smoothing:antialiased;
+  transition:background .3s,color .3s;
+  line-height:1.65;
+  word-break:keep-all;
+  overflow-wrap:break-word;
+  overflow-x:hidden;
+}
+code,.code,.tag,pre,td.tp,td.dc{word-break:break-all;overflow-wrap:anywhere}
+td.dc{word-break:keep-all!important}
+h1,h2,h3,h4{color:var(--tx);line-height:1.15;letter-spacing:-.03em;word-break:keep-all}
+p,span,li{color:var(--tx)}
+.t2{color:var(--tx2)}
+
+/* ─ PAGE ─ */
+.page{max-width:880px;margin:0 auto;padding:52px 32px 88px}
+
+/* ─ HEADER ─ */
+.hdr{margin-bottom:52px}
+.hdr-eye{display:flex;align-items:center;gap:10px;margin-bottom:16px;flex-wrap:wrap}
+.eye-tag{font-size:.66rem;font-weight:800;text-transform:uppercase;letter-spacing:.14em;
+  color:var(--ac);background:rgba(108,99,255,.1);border:1px solid rgba(108,99,255,.25);
+  padding:3px 10px;border-radius:100px;white-space:nowrap}
+.eye-date{font-size:.72rem;color:var(--tx2);white-space:nowrap}
+.hdr h1{font-size:2.2rem;font-weight:900;margin-bottom:10px;line-height:1.2;word-break:keep-all}
+.hdr-desc{font-size:.88rem;color:var(--tx2);max-width:540px;line-height:1.75;word-break:keep-all}
+.legend{display:flex;gap:18px;flex-wrap:wrap;margin-top:22px;padding-top:20px;border-top:1px solid var(--bd)}
+.leg{display:flex;align-items:center;gap:6px;font-size:.74rem;color:var(--tx2)}
+.leg-dot{width:10px;height:10px;border-radius:3px;flex-shrink:0}
+
+/* ─ SEC LABEL ─ */
+.sec{font-size:.6rem;font-weight:800;text-transform:uppercase;letter-spacing:.16em;
+  color:var(--tx3);margin:0 0 14px;display:flex;align-items:center;gap:10px}
+.sec::after{content:'';flex:1;height:1px;background:var(--bd)}
+
+/* ─ ARROW ─ */
+.arr-dn{display:flex;justify-content:center;padding:4px 0}
+.arr-dn svg{color:var(--tx3)}
+
+/* ─ SOURCE CARDS ─ */
+.src-grid{display:grid;grid-template-columns:1fr 1fr;gap:14px;margin-bottom:4px}
+.src-card{background:var(--sf);border:1px solid var(--bd);border-radius:12px;padding:16px 18px}
+.src-head{display:flex;align-items:center;gap:10px;margin-bottom:12px}
+.src-badge{font-size:.62rem;font-weight:800;text-transform:uppercase;letter-spacing:.1em;
+  padding:2px 8px;border-radius:100px;background:rgba(140,140,170,.18);color:var(--tx2);flex-shrink:0}
+.src-title{font-size:.9rem;font-weight:700;color:var(--tx)}
+.src-sub{font-size:.7rem;color:var(--tx2);margin-left:auto}
+
+/* ─ META ─ */
+.mb-label{font-size:.58rem;font-weight:800;text-transform:uppercase;
+  letter-spacing:.1em;color:var(--tx3);margin-bottom:7px}
+.mb-row{display:flex;gap:8px;font-size:.77rem;margin-bottom:5px;align-items:flex-start}
+.mb-k{color:var(--tx2);font-weight:600;min-width:34px;flex-shrink:0;padding-top:1px;line-height:1.5}
+.mb-v{color:var(--tx);line-height:1.6;flex:1;word-break:keep-all}
+.tag{display:inline-block;font-size:.64rem;padding:1px 6px;border-radius:4px;
+  background:var(--sf2);color:var(--tx2);border:1px solid var(--bds);
+  margin-right:3px;font-family:'Inter',monospace;white-space:nowrap;word-break:normal}
+
+/* ─ PIPELINE TIMELINE ─ */
+.pipeline{position:relative;padding-left:76px}
+.pipeline::before{
+  content:'';position:absolute;left:22px;top:0;bottom:0;
+  width:2px;border-radius:2px;
+  background:var(--bd);
+}
+
+/* ─ STAGE WRAPPER ─ */
+.sw{position:relative;margin-bottom:10px}
+.sw-dot{
+  position:absolute;left:-54px;top:22px;
+  width:38px;height:38px;border-radius:50%;
+  display:flex;align-items:center;justify-content:center;
+  font-size:.75rem;font-weight:900;color:#fff;z-index:1;
+}
+.sw-line{
+  position:absolute;left:-36px;top:41px;
+  width:16px;height:2px;opacity:.45;
+}
+
+/* ─ STAGE CARD ─ */
+.stage{background:var(--sf);border:1px solid var(--bd);border-radius:14px;
+  overflow:hidden;transition:box-shadow .2s,transform .15s}
+.stage:hover{box-shadow:0 6px 32px rgba(0,0,0,.16);transform:translateY(-1px)}
+
+.stage-head{padding:18px 22px;display:flex;align-items:flex-start;gap:16px;
+  border-bottom:1px solid var(--bd)}
+.sn{font-size:2.4rem;font-weight:900;line-height:1;letter-spacing:-.07em;
+  min-width:58px;flex-shrink:0;margin-top:-3px}
+.si{flex:1;min-width:0}
+.st{font-size:1rem;font-weight:800;color:var(--tx);margin-bottom:4px;word-break:keep-all}
+.ss{font-size:.76rem;color:var(--tx2);word-break:keep-all;line-height:1.5}
+.sf-file{font-size:.67rem;color:var(--tx2);font-family:'Inter',monospace;
+  background:var(--sf2);border:1px solid var(--bds);padding:3px 8px;
+  border-radius:6px;white-space:nowrap;flex-shrink:0;align-self:flex-start;margin-top:3px}
+
+.stage-body{padding:18px 22px;display:grid;grid-template-columns:1fr 1fr;gap:18px}
+
+/* 단계별 상단 선 색상 */
+.s1 .stage-head{border-top:3px solid var(--s1)}
+.s1 .sn{color:var(--s1)}
+.s1 .sw-dot{background:var(--s1)}
+.s1 .sw-line{background:var(--s1)}
+
+.s2 .stage-head{border-top:3px solid var(--s2)}
+.s2 .sn{color:var(--s2)}
+.s2 .sw-dot{background:var(--s2)}
+.s2 .sw-line{background:var(--s2)}
+
+.s3 .stage-head{border-top:3px solid var(--s3)}
+.s3 .sn{color:var(--s3)}
+.s3 .sw-dot{background:var(--s3)}
+.s3 .sw-line{background:var(--s3)}
+
+/* ─ SCHEMA ─ */
+.schema{width:100%;border-collapse:collapse;margin-top:5px}
+.schema th{font-size:.56rem;font-weight:700;text-transform:uppercase;letter-spacing:.08em;
+  color:var(--tx3);padding:4px 8px;border-bottom:1px solid var(--bd);text-align:left}
+.schema td{font-size:.71rem;padding:5px 8px;border-bottom:1px solid var(--bds);color:var(--tx)}
+.schema td.tp{color:var(--ac2);font-family:'Inter',monospace;word-break:break-all}
+.schema td.dc{font-family:'Noto Sans KR',sans-serif;color:var(--tx2);font-size:.67rem;word-break:keep-all}
+.schema tr:last-child td{border-bottom:none}
+.schema tr:hover td{background:var(--sfh)}
+
+/* ─ FUNNEL TABLE ─ */
+.ftbl{width:100%;border-collapse:collapse;margin-top:5px}
+.ftbl th{font-size:.56rem;font-weight:700;text-transform:uppercase;letter-spacing:.08em;
+  color:var(--tx3);padding:4px 8px;border-bottom:1px solid var(--bd);text-align:left}
+.ftbl td{font-size:.74rem;padding:6px 8px;border-bottom:1px solid var(--bds);color:var(--tx)}
+.ftbl tr:last-child td{border-bottom:none}
+.ftbl tr:hover td{background:var(--sfh)}
+.ftbl td.tp{color:var(--ac2);font-family:'Inter',monospace;font-size:.69rem}
+.fl{display:inline-block;padding:2px 7px;border-radius:4px;
+  font-size:.63rem;font-weight:700;margin-right:4px;white-space:nowrap}
+
+/* ─ CODE ─ */
+.code{background:var(--sf2);border:1px solid var(--bds);border-radius:8px;
+  padding:10px 13px;font-family:'Inter',monospace;font-size:.71rem;color:var(--tx2);
+  white-space:pre-wrap;line-height:1.7;overflow-x:auto;margin-top:7px}
+.cmd{color:var(--ac);font-weight:700}
+.str{color:var(--gn)}
+
+/* ─ WARN ─ */
+.warn{background:rgba(255,209,102,.06);border:1px solid rgba(255,209,102,.22);
+  border-radius:8px;padding:9px 12px;font-size:.74rem;color:var(--yw);
+  display:flex;gap:8px;align-items:flex-start;margin-top:10px;word-break:keep-all}
+
+/* ─ EXT DEP ─ */
+.ext{background:var(--sf2);border:1px solid var(--bds);border-radius:8px;
+  padding:10px 12px;display:flex;gap:10px;margin-top:9px}
+.ext svg{flex-shrink:0;margin-top:2px}
+.ext-t{font-size:.78rem;font-weight:700;color:var(--tx);margin-bottom:2px;word-break:keep-all}
+.ext-s{font-size:.7rem;color:var(--tx2);word-break:keep-all}
+
+/* ─ OUTPUT ─ */
+.out-grid{display:grid;grid-template-columns:1fr 1fr;gap:14px;margin-bottom:8px}
+.out{background:var(--sf);border:1px solid var(--bd);border-radius:14px;
+  padding:18px 20px;transition:box-shadow .2s}
+.out:hover{box-shadow:0 4px 20px rgba(0,0,0,.1)}
+.out.full{grid-column:1/-1}
+.out-head{display:flex;align-items:center;gap:10px;margin-bottom:13px;flex-wrap:wrap}
+.ob{font-size:.62rem;font-weight:800;text-transform:uppercase;letter-spacing:.1em;
+  padding:3px 9px;border-radius:100px;flex-shrink:0}
+.ot{font-size:.88rem;font-weight:700;color:var(--tx);word-break:keep-all}
+.os{font-size:.7rem;color:var(--tx2);margin-left:auto;white-space:nowrap}
+.okv{display:flex;gap:8px;margin-bottom:5px;font-size:.76rem}
+.ok{color:var(--tx3);font-weight:700;min-width:50px;flex-shrink:0;
+  font-size:.6rem;text-transform:uppercase;letter-spacing:.06em;padding-top:2px}
+.ov{color:var(--tx2);line-height:1.6;word-break:keep-all}
+
+/* ─ CRON ─ */
+.cron{display:flex;align-items:center;gap:10px;padding:9px 12px;
+  background:var(--sf2);border-radius:8px;border:1px solid var(--bds);margin-bottom:10px}
+.cron-tag{font-size:.64rem;font-weight:700;background:rgba(255,183,77,.12);
+  color:var(--yw);border-radius:4px;padding:2px 8px;font-family:'Inter',monospace;
+  flex-shrink:0;white-space:nowrap}
+.cron-desc{font-size:.76rem;color:var(--tx2);word-break:keep-all}
+
+/* ─ STEP FLOW ─ */
+.flow{display:flex;align-items:center;gap:6px;flex-wrap:wrap;
+  font-size:.74rem;color:var(--tx2);margin-top:8px}
+.fn{width:20px;height:20px;border-radius:50%;background:rgba(108,99,255,.2);
+  color:var(--ac);font-size:.6rem;font-weight:800;
+  display:flex;align-items:center;justify-content:center;flex-shrink:0}
+.fa{color:var(--tx3);font-size:.7rem}
+
+/* ─ SECRETS ─ */
+.sec-grid{display:grid;grid-template-columns:repeat(3,1fr);
+  background:var(--sf);border:1px solid var(--bd);border-radius:14px;overflow:hidden}
+.sc{padding:14px 16px}
+.sc+.sc{border-left:1px solid var(--bd)}
+.sc-t{font-size:.58rem;font-weight:800;text-transform:uppercase;
+  letter-spacing:.1em;color:var(--tx3);margin-bottom:8px}
+.sc-tags{display:flex;flex-direction:column;gap:5px}
+
+/* ─ DIV ─ */
+.hr{height:1px;background:var(--bd);margin:28px 0}
+
+/* ─ ANIMATIONS ─ */
+@keyframes fadeUp{from{opacity:0;transform:translateY(16px)}to{opacity:1;transform:translateY(0)}}
+.ani{animation:fadeUp .5s ease-out both}
+.d1{animation-delay:.05s}.d2{animation-delay:.1s}.d3{animation-delay:.15s}
+.d4{animation-delay:.2s}.d5{animation-delay:.25s}
+.rev{opacity:0;transform:translateY(14px);transition:opacity .55s ease,transform .55s ease}
+.rev.vis{opacity:1;transform:translateY(0)}
+@media(prefers-reduced-motion:reduce){*,*::before,*::after{animation:none!important;transition:none!important}.rev{opacity:1;transform:none}}
+
+/* ─ PRINT ─ */
+@media print{
+  body{background:#fff!important;color:#000!important}
+  .viz-menu{display:none!important}
+  .rev{opacity:1!important;transform:none!important}
+  *{print-color-adjust:exact;-webkit-print-color-adjust:exact}
+}
+
+/* ─ MENU ─ */
+.viz-menu{position:fixed;top:16px;right:16px;z-index:9999}
+.vmtgl{width:40px;height:40px;border-radius:10px;background:var(--sf);
+  border:1px solid var(--bd);color:var(--tx);cursor:pointer;
+  display:flex;align-items:center;justify-content:center;transition:all .18s}
+.vmtgl:hover{background:var(--sfh)}
+.vmdrop{position:absolute;top:46px;right:0;min-width:186px;background:var(--sf);
+  border:1px solid var(--bd);border-radius:10px;padding:6px;
+  opacity:0;visibility:hidden;transform:translateY(-6px);transition:all .18s}
+.vmdrop.on{opacity:1;visibility:visible;transform:translateY(0)}
+.vmdrop button{width:100%;padding:9px 12px;border:none;border-radius:6px;
+  background:transparent;color:var(--tx);font-size:.8rem;font-family:inherit;
+  cursor:pointer;text-align:left;display:flex;align-items:center;gap:8px;transition:background .13s}
+.vmdrop button:hover{background:var(--sfh)}
+
+/* ─ RESPONSIVE ─ */
+@media(max-width:720px){
+  .page{padding:32px 16px 64px}
+  .hdr h1{font-size:1.75rem}
+  .src-grid,.out-grid{grid-template-columns:1fr}
+  .out.full{grid-column:1}
+  .stage-body{grid-template-columns:1fr}
+  .sf-file{display:none}
+  .pipeline{padding-left:54px}
+  .pipeline::before{left:14px}
+  .sw-dot{left:-38px;width:28px;height:28px;font-size:.68rem}
+  .sw-line{left:-24px;width:12px}
+  .sn{font-size:1.9rem;min-width:46px}
+  .sec-grid{grid-template-columns:1fr}
+  .sc+.sc{border-left:none;border-top:1px solid var(--bd)}
+}
+@media(max-width:375px){
+  body{overflow-x:hidden}
+  .pipeline{padding-left:42px}
+  .pipeline::before{left:10px}
+  .sw-dot{left:-30px;width:24px;height:24px;font-size:.6rem}
+  .sw-line{left:-18px;width:10px}
+}
+</style>
+</head>
+<body>
+
+<div class="viz-menu">
+  <button class="vmtgl" onclick="tM()" aria-label="메뉴">
+    <svg width="17" height="17" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><line x1="3" y1="5" x2="17" y2="5"/><line x1="3" y1="10" x2="17" y2="10"/><line x1="3" y1="15" x2="17" y2="15"/></svg>
+  </button>
+  <div class="vmdrop" id="vmd">
+    <button onclick="cT()"><span id="tI">🌙</span><span id="tL">Dark Mode</span></button>
+    <button onclick="dlImg()"><span>📥</span><span>PNG 저장</span></button>
+    <button onclick="window.print()"><span>🖨️</span><span>Print / PDF</span></button>
+  </div>
+</div>
+
+<main>
+<div class="page">
+
+  <!-- HEADER -->
+  <header class="hdr ani">
+    <div class="hdr-eye">
+      <span class="eye-tag">FCO Esports · Phase 2</span>
+      <span class="eye-date">2026.04 기준 · Claude Code 기반 구현</span>
+    </div>
+    <h1>데이터 파이프라인 아키텍처</h1>
+    <p class="hdr-desc">SOOP · 치지직 계정 연동에서 GitHub Pages 대시보드 자동 반영까지 — 3단계 파이프라인 전체 구조 및 구현 스펙</p>
+    <div class="legend">
+      <div class="leg"><div class="leg-dot" style="background:var(--tx2);opacity:.5"></div>외부 플랫폼 / DB</div>
+      <div class="leg"><div class="leg-dot" style="background:var(--s1)"></div>1단계 · 연동 계정 수집</div>
+      <div class="leg"><div class="leg-dot" style="background:var(--s2)"></div>2단계 · 시청 인원 분류</div>
+      <div class="leg"><div class="leg-dot" style="background:var(--s3)"></div>3단계 · 행동량 추출</div>
+      <div class="leg"><div class="leg-dot" style="background:var(--gn)"></div>자동화 출력</div>
+    </div>
+  </header>
+
+  <!-- 외부 플랫폼 -->
+  <div class="sec rev">외부 플랫폼 · API 문서 확보 선행 필요</div>
+  <div class="src-grid rev">
+    <div class="src-card">
+      <div class="src-head">
+        <span class="src-badge">외부</span>
+        <span class="src-title">SOOP</span>
+        <span class="src-sub">계정연동 API</span>
+      </div>
+      <div class="mb-row"><span class="mb-k">제공</span><span class="mb-v">연동 유저 ID · 시청 로그 · 누적 시청시간</span></div>
+      <div class="mb-row"><span class="mb-k">형식</span><span class="mb-v"><span class="tag">JSON</span><span class="tag">REST API</span></span></div>
+      <div class="warn">
+        <svg width="13" height="13" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" style="flex-shrink:0;margin-top:1px"><path d="M8 1L15 14H1L8 1Z"/><line x1="8" y1="6" x2="8" y2="10"/><circle cx="8" cy="12.5" r=".7" fill="currentColor" stroke="none"/></svg>
+        API 키 발급 및 문서 확보 선행 필요
+      </div>
+    </div>
+    <div class="src-card">
+      <div class="src-head">
+        <span class="src-badge">외부</span>
+        <span class="src-title">치지직</span>
+        <span class="src-sub">계정연동 API</span>
+      </div>
+      <div class="mb-row"><span class="mb-k">제공</span><span class="mb-v">연동 유저 ID · 시청 로그 · 누적 시청시간</span></div>
+      <div class="mb-row"><span class="mb-k">형식</span><span class="mb-v"><span class="tag">JSON</span><span class="tag">REST API</span></span></div>
+      <div class="warn">
+        <svg width="13" height="13" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" style="flex-shrink:0;margin-top:1px"><path d="M8 1L15 14H1L8 1Z"/><line x1="8" y1="6" x2="8" y2="10"/><circle cx="8" cy="12.5" r=".7" fill="currentColor" stroke="none"/></svg>
+        API 키 발급 및 문서 확보 선행 필요
+      </div>
+    </div>
+  </div>
+
+  <div class="arr-dn rev"><svg width="20" height="32" viewBox="0 0 20 32" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><line x1="10" y1="0" x2="10" y2="24"/><polyline points="5,19 10,26 15,19"/></svg></div>
+
+  <!-- PIPELINE -->
+  <div class="sec rev">Claude Code 파이프라인 · 3단계 구현</div>
+  <div class="pipeline">
+
+    <!-- STAGE 1 -->
+    <div class="sw rev">
+      <div class="sw-dot">1</div>
+      <div class="sw-line"></div>
+      <div class="stage s1">
+        <div class="stage-head">
+          <div class="sn">01</div>
+          <div class="si">
+            <div class="st">연동 계정 수집</div>
+            <div class="ss">SOOP · 치지직에서 FC온라인 연동 유저를 수집하여 SQLite에 저장</div>
+          </div>
+          <div class="sf-file">collect_accounts.py</div>
+        </div>
+        <div class="stage-body">
+          <div>
+            <div class="mb-label">스펙</div>
+            <div class="mb-row"><span class="mb-k">입력</span><span class="mb-v">SOOP API response · 치지직 API response</span></div>
+            <div class="mb-row"><span class="mb-k">처리</span><span class="mb-v">유저 ID 파싱 → 중복 제거 → NEXON SN 매핑 → SQLite 저장</span></div>
+            <div class="mb-row"><span class="mb-k">출력</span><span class="mb-v"><span class="tag">users</span> 테이블 (2단계 입력값)</span></div>
+            <div class="mb-row"><span class="mb-k">도구</span><span class="mb-v"><span class="tag">Python</span><span class="tag">SQLite</span><span class="tag">requests</span></span></div>
+            <div class="mb-label" style="margin-top:12px">Claude Code 프롬프트</div>
+            <div class="code"><span class="cmd">claude</span> <span class="str">"collect_accounts.py 작성해줘.
+SOOP · 치지직 API에서 FCO 계정
+연동 유저 목록을 받아 SQLite users
+테이블에 nexon_sn, platform_id,
+linked_at 컬럼으로 저장해줘"</span></div>
+          </div>
+          <div>
+            <div class="mb-label">출력 테이블 스키마 · users</div>
+            <table class="schema">
+              <thead><tr><th>컬럼명</th><th>타입</th><th>설명</th></tr></thead>
+              <tbody>
+                <tr><td>nexon_sn</td><td class="tp">TEXT PK</td><td class="dc">NEXON 계정 고유값</td></tr>
+                <tr><td>soop_id</td><td class="tp">TEXT</td><td class="dc">SOOP 연동 ID</td></tr>
+                <tr><td>chzzk_id</td><td class="tp">TEXT</td><td class="dc">치지직 연동 ID</td></tr>
+                <tr><td>platform</td><td class="tp">TEXT</td><td class="dc">SOOP / chzzk</td></tr>
+                <tr><td>linked_at</td><td class="tp">DATETIME</td><td class="dc">계정 연동 일시</td></tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="arr-dn rev"><svg width="20" height="32" viewBox="0 0 20 32" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><line x1="10" y1="0" x2="10" y2="24"/><polyline points="5,19 10,26 15,19"/></svg></div>
+
+    <!-- STAGE 2 -->
+    <div class="sw rev">
+      <div class="sw-dot">2</div>
+      <div class="sw-line"></div>
+      <div class="stage s2">
+        <div class="stage-head">
+          <div class="sn">02</div>
+          <div class="si">
+            <div class="st">시청 인원 · 시청시간 분류</div>
+            <div class="ss">누적 시청시간 기준으로 L1~L4 퍼널 단계를 자동 분류하여 저장</div>
+          </div>
+          <div class="sf-file">classify_viewers.py</div>
+        </div>
+        <div class="stage-body">
+          <div>
+            <div class="mb-label">스펙</div>
+            <div class="mb-row"><span class="mb-k">입력</span><span class="mb-v">users 테이블 · 시청 로그 API</span></div>
+            <div class="mb-row"><span class="mb-k">처리</span><span class="mb-v">누적 시청시간 집계 → L1~L4 퍼널 분류 → viewer_segments 저장</span></div>
+            <div class="mb-row"><span class="mb-k">출력</span><span class="mb-v"><span class="tag">viewer_segments</span> 테이블 (3단계 입력값)</span></div>
+            <div class="mb-row"><span class="mb-k">도구</span><span class="mb-v"><span class="tag">Python</span><span class="tag">SQLite</span><span class="tag">pandas</span></span></div>
+            <div class="mb-label" style="margin-top:12px">퍼널 분류 기준</div>
+            <table class="ftbl">
+              <thead><tr><th>Level</th><th>누적 시청시간</th><th>유형</th></tr></thead>
+              <tbody>
+                <tr><td><span class="fl" style="background:rgba(124,111,255,.18);color:var(--s1)">L1</span></td><td class="tp">1h ~ 20h</td><td>신규 팬</td></tr>
+                <tr><td><span class="fl" style="background:rgba(79,195,247,.15);color:var(--s2)">L2</span></td><td class="tp">21h ~ 40h</td><td>캐주얼 팬</td></tr>
+                <tr><td><span class="fl" style="background:rgba(255,209,102,.15);color:var(--yw)">L3</span></td><td class="tp">41h ~ 70h</td><td>코어 팬 · ROI MAX</td></tr>
+                <tr><td><span class="fl" style="background:rgba(79,255,176,.13);color:var(--gn)">L4</span></td><td class="tp">71h+</td><td>하드코어 팬</td></tr>
+              </tbody>
+            </table>
+            <div class="mb-label" style="margin-top:12px">Claude Code 프롬프트</div>
+            <div class="code"><span class="cmd">claude</span> <span class="str">"classify_viewers.py 작성해줘.
+users 테이블의 nexon_sn 기준으로
+시청 로그를 집계하고 L1(1~20h) /
+L2(21~40h) / L3(41~70h) / L4(71h+)
+퍼널 단계로 분류해서 viewer_segments
+테이블에 저장해줘"</span></div>
+          </div>
+          <div>
+            <div class="mb-label">출력 테이블 스키마 · viewer_segments</div>
+            <table class="schema">
+              <thead><tr><th>컬럼명</th><th>타입</th><th>설명</th></tr></thead>
+              <tbody>
+                <tr><td>nexon_sn</td><td class="tp">TEXT FK</td><td class="dc">users 테이블 참조</td></tr>
+                <tr><td>total_watch_h</td><td class="tp">FLOAT</td><td class="dc">누적 시청 시간</td></tr>
+                <tr><td>funnel_level</td><td class="tp">INTEGER</td><td class="dc">1 ~ 4</td></tr>
+                <tr><td>watch_count</td><td class="tp">INTEGER</td><td class="dc">총 시청 횟수</td></tr>
+                <tr><td>first_watch_at</td><td class="tp">DATETIME</td><td class="dc">첫 시청 일시</td></tr>
+                <tr><td>last_watch_at</td><td class="tp">DATETIME</td><td class="dc">최근 시청 일시</td></tr>
+                <tr><td>classified_at</td><td class="tp">DATETIME</td><td class="dc">분류 실행 일시</td></tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="arr-dn rev"><svg width="20" height="32" viewBox="0 0 20 32" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><line x1="10" y1="0" x2="10" y2="24"/><polyline points="5,19 10,26 15,19"/></svg></div>
+
+    <!-- STAGE 3 -->
+    <div class="sw rev">
+      <div class="sw-dot">3</div>
+      <div class="sw-line"></div>
+      <div class="stage s3">
+        <div class="stage-head">
+          <div class="sn">03</div>
+          <div class="si">
+            <div class="st">NEXON SN 행동량 추출</div>
+            <div class="ss">NEXON SN 기준으로 인게임 DB와 조인, 7개 지표를 추출하여 data.json 생성</div>
+          </div>
+          <div class="sf-file">extract_metrics.py</div>
+        </div>
+        <div class="stage-body">
+          <div>
+            <div class="mb-label">스펙</div>
+            <div class="mb-row"><span class="mb-k">입력</span><span class="mb-v">viewer_segments 테이블 · NEXON 내부 DB</span></div>
+            <div class="mb-row"><span class="mb-k">처리</span><span class="mb-v">NEXON SN 기준 JOIN → 7개 인게임 지표 추출 → data.json 생성</span></div>
+            <div class="mb-row"><span class="mb-k">출력</span><span class="mb-v"><span class="tag">player_metrics</span> · <span class="tag">data.json</span></span></div>
+            <div class="mb-row"><span class="mb-k">도구</span><span class="mb-v"><span class="tag">Python</span><span class="tag">SQLAlchemy</span><span class="tag">pandas</span></span></div>
+            <div class="ext">
+              <svg width="15" height="15" viewBox="0 0 20 20" fill="none" stroke="var(--tx2)" stroke-width="1.5" style="flex-shrink:0;margin-top:2px"><ellipse cx="10" cy="6" rx="7" ry="3"/><path d="M3 6v4c0 1.66 3.13 3 7 3s7-1.34 7-3V6"/><path d="M3 10v4c0 1.66 3.13 3 7 3s7-1.34 7-3v-4"/></svg>
+              <div>
+                <div class="ext-t">NEXON DB · 외부 의존성</div>
+                <div class="ext-s">내부 DB 접근 권한 사전 확보 필요 · DBA 협의 필요</div>
+              </div>
+            </div>
+            <div class="mb-label" style="margin-top:12px">Claude Code 프롬프트</div>
+            <div class="code"><span class="cmd">claude</span> <span class="str">"extract_metrics.py 작성해줘.
+viewer_segments의 nexon_sn으로
+NEXON DB와 JOIN해서 7개 인게임
+지표를 추출하고 data.json으로
+저장해줘"</span></div>
+          </div>
+          <div>
+            <div class="mb-label">추출 지표 7개 · player_metrics</div>
+            <table class="schema">
+              <thead><tr><th>지표</th><th>컬럼명</th><th>타입</th></tr></thead>
+              <tbody>
+                <tr><td class="dc">접속률</td><td>login_rate</td><td class="tp">FLOAT %</td></tr>
+                <tr><td class="dc">플레이타임</td><td>playtime_dt</td><td class="tp">INTEGER DT</td></tr>
+                <tr><td class="dc">과금 ARPU</td><td>arpu</td><td class="tp">INTEGER ₩</td></tr>
+                <tr><td class="dc">공식경기 1v1</td><td>ranked_hours</td><td class="tp">FLOAT h</td></tr>
+                <tr><td class="dc">스쿼드 변경</td><td>squad_changes</td><td class="tp">INTEGER</td></tr>
+                <tr><td class="dc">이적시장 이용</td><td>market_uses</td><td class="tp">INTEGER</td></tr>
+                <tr><td class="dc">강화 시도</td><td>enhance_tries</td><td class="tp">INTEGER</td></tr>
+              </tbody>
+            </table>
+            <div class="mb-label" style="margin-top:10px">data.json 출력 구조</div>
+            <div class="code" style="font-size:.67rem">{
+  <span class="str">"updated_at"</span>: <span class="str">"2026-05-01T06:00:00"</span>,
+  <span class="str">"kpi"</span>: {
+    <span class="str">"total_viewers"</span>: 187400,
+    <span class="str">"pltv_multiplier"</span>: 3.82, ... },
+  <span class="str">"funnel"</span>: [
+    {<span class="str">"level"</span>: 1, <span class="str">"users"</span>: 187400}, ... ],
+  <span class="str">"behavior_change"</span>: [ ... ],
+  <span class="str">"platform"</span>: {
+    <span class="str">"soop"</span>: {...}, <span class="str">"chzzk"</span>: {...} }
+}</div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+  </div><!-- /pipeline -->
+
+  <div class="arr-dn rev"><svg width="20" height="32" viewBox="0 0 20 32" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><line x1="10" y1="0" x2="10" y2="24"/><polyline points="5,19 10,26 15,19"/></svg></div>
+
+  <!-- 자동화 출력 -->
+  <div class="sec rev">자동화 출력 · 매일 오전 6시 KST 자동 반영</div>
+  <div class="out-grid rev">
+    <div class="out">
+      <div class="out-head">
+        <span class="ob" style="background:rgba(79,255,176,.13);color:var(--gn)">Output</span>
+        <span class="ot">data.json 자동 생성</span>
+        <span class="os">대시보드 입력 데이터</span>
+      </div>
+      <div class="okv"><span class="ok">형식</span><span class="ov">JSON · UTF-8 · 매일 덮어쓰기</span></div>
+      <div class="okv"><span class="ok">위치</span><span class="ov">GitHub 레포 루트 · <span class="tag">./data.json</span></span></div>
+      <div class="okv"><span class="ok">갱신</span><span class="ov">extract_metrics.py 실행 후 자동 생성</span></div>
+    </div>
+    <div class="out">
+      <div class="out-head">
+        <span class="ob" style="background:rgba(255,183,77,.12);color:var(--yw)">자동화</span>
+        <span class="ot">GitHub Actions</span>
+        <span class="os">fco_pipeline.yml</span>
+      </div>
+      <div class="cron">
+        <span class="cron-tag">0 21 * * *</span>
+        <span class="cron-desc">UTC 21:00 = KST 06:00 · 매일 자동 실행</span>
+      </div>
+      <div class="flow">
+        <div style="display:flex;align-items:center;gap:5px"><div class="fn">1</div><span>collect</span></div>
+        <span class="fa">→</span>
+        <div style="display:flex;align-items:center;gap:5px"><div class="fn">2</div><span>classify</span></div>
+        <span class="fa">→</span>
+        <div style="display:flex;align-items:center;gap:5px"><div class="fn">3</div><span>extract</span></div>
+        <span class="fa">→</span>
+        <div style="display:flex;align-items:center;gap:5px"><div class="fn">4</div><span>validate</span></div>
+        <span class="fa">→</span>
+        <div style="display:flex;align-items:center;gap:5px"><div class="fn">5</div><span>push</span></div>
+      </div>
+    </div>
+  </div>
+
+  <div class="arr-dn rev"><svg width="20" height="32" viewBox="0 0 20 32" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><line x1="10" y1="0" x2="10" y2="24"/><polyline points="5,19 10,26 15,19"/></svg></div>
+
+  <div class="out-grid rev">
+    <div class="out full" style="border-color:rgba(79,255,176,.3)">
+      <div class="out-head">
+        <span class="ob" style="background:rgba(79,255,176,.13);color:var(--gn)">완료</span>
+        <span class="ot">FCO 이스포츠 대시보드</span>
+        <span class="os">GitHub Pages 자동 반영</span>
+      </div>
+      <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:16px">
+        <div>
+          <div class="mb-label">링크</div>
+          <div style="font-family:'Inter',monospace;font-size:.72rem;color:var(--gn);word-break:break-all">zhd135135-stack.github.io/fco-esports-dashboard</div>
+        </div>
+        <div>
+          <div class="mb-label">배포 시간</div>
+          <div style="font-size:.78rem;color:var(--tx2)">push 후 1~2분 이내 자동 배포</div>
+        </div>
+        <div>
+          <div class="mb-label">데이터 소스</div>
+          <div style="font-size:.78rem;color:var(--tx2)">fetch(<span class="tag">data.json</span>) · 페이지 로드 시 자동 갱신</div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- GitHub Secrets -->
+  <div class="hr"></div>
+  <div class="sec rev">GitHub Secrets · Settings → Secrets and variables → Actions에 등록</div>
+  <div class="sec-grid rev">
+    <div class="sc">
+      <div class="sc-t">SOOP 연동</div>
+      <div class="sc-tags">
+        <div class="tag" style="width:fit-content">SOOP_API_KEY</div>
+        <div class="tag" style="width:fit-content">SOOP_API_URL</div>
+      </div>
+    </div>
+    <div class="sc">
+      <div class="sc-t">치지직 연동</div>
+      <div class="sc-tags">
+        <div class="tag" style="width:fit-content">CHZZK_API_KEY</div>
+        <div class="tag" style="width:fit-content">CHZZK_API_URL</div>
+      </div>
+    </div>
+    <div class="sc">
+      <div class="sc-t">NEXON DB</div>
+      <div class="sc-tags">
+        <div class="tag" style="width:fit-content">NEXON_DB_HOST</div>
+        <div class="tag" style="width:fit-content">NEXON_DB_USER</div>
+        <div class="tag" style="width:fit-content">NEXON_DB_PASS</div>
+      </div>
+    </div>
+  </div>
+
+</div>
+</main>
+
+<script>
+function tM(){var d=document.getElementById('vmd');if(d)d.classList.toggle('on')}
+document.addEventListener('click',function(e){if(!e.target.closest('.viz-menu')){var d=document.getElementById('vmd');if(d)d.classList.remove('on')}});
+
+var cur='dark';
+function apT(t){
+  document.documentElement.className='theme-'+t;
+  var i=document.getElementById('tI'),l=document.getElementById('tL');
+  if(i)i.textContent=t==='dark'?'🌙':'☀️';
+  if(l)l.textContent=t==='dark'?'Dark Mode':'Light Mode';
+  localStorage.setItem('viz-theme',t);cur=t;
+}
+function cT(){apT(cur==='dark'?'light':'dark')}
+var sv=localStorage.getItem('viz-theme');
+var pd=window.matchMedia('(prefers-color-scheme:dark)').matches;
+cur=sv||(pd?'dark':'light');apT(cur);
+
+document.querySelectorAll('.rev').forEach(function(el){
+  var o=new IntersectionObserver(function(entries){
+    entries.forEach(function(e){if(e.isIntersecting){e.target.classList.add('vis');o.unobserve(e.target)}});
+  },{threshold:.05});
+  o.observe(el);
+});
+
+async function dlImg(){
+  var m=document.querySelector('.viz-menu');m.style.display='none';
+  try{var url=await htmlToImage.toPng(document.body,{quality:1,pixelRatio:2});var a=document.createElement('a');a.href=url;a.download='fco-pipeline.png';a.click();}catch(e){console.error(e)}
+  m.style.display='';
+}
+</script>
+</body>
+</html>
