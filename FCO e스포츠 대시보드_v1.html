@@ -1,0 +1,1102 @@
+<!DOCTYPE html>
+<html lang="ko" class="theme-dark">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>FCO Phase 2 · Esports Viewer Dashboard</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@400;500;600;700;800;900&family=Inter:wght@400;500;600;700;800;900&display=swap" rel="stylesheet">
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.7/dist/chart.umd.min.js"></script>
+<script>if(typeof Chart!=='undefined')Chart.defaults.animation=false;</script>
+<script src="https://cdn.jsdelivr.net/npm/html-to-image@1.11.11/dist/html-to-image.js"></script>
+<style>
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+:root{interpolate-size:allow-keywords}
+
+html.theme-dark{
+  --bg:#0D0D14;--surface:#13131F;--surface2:#1A1A2C;--surface-hover:#1E1E30;
+  --border:rgba(108,99,255,0.16);--border-sub:rgba(255,255,255,0.05);
+  --text:#E8E8F0;--text2:#8888AA;--text3:#5A5A7A;
+  --accent:#7C6FFF;--accent2:#4FC3F7;
+  --green:#4FFFB0;--red:#FF6B7A;--yellow:#FFD166;--purple:#C084FC;
+  --l1:#8B8FFF;--l2:#4FC3F7;--l3:#FFD166;--l4:#4FFFB0;
+}
+html.theme-light{
+  --bg:#F0F0F8;--surface:#FFFFFF;--surface2:#F5F5FF;--surface-hover:#EAEAFF;
+  --border:rgba(100,90,240,0.13);--border-sub:rgba(0,0,0,0.06);
+  --text:#111128;--text2:#5A5A8A;--text3:#9090B8;
+  --accent:#5B50E0;--accent2:#0088BB;
+  --green:#008F5E;--red:#D02030;--yellow:#B07000;--purple:#7730C8;
+  --l1:#6062CC;--l2:#0088BB;--l3:#B07000;--l4:#008F5E;
+}
+
+body{font-family:'Noto Sans KR','Inter',sans-serif;background:var(--bg);color:var(--text);-webkit-font-smoothing:antialiased;transition:background .3s,color .3s}
+h1,h2,h3,h4{color:var(--text);line-height:1.1}
+p,span,div,td,th,li{color:var(--text)}
+.t2{color:var(--text2)}
+
+/* NAV */
+.nav{position:sticky;top:0;z-index:200;background:var(--bg);border-bottom:1px solid var(--border);padding:0 40px}
+.nav-in{max-width:1440px;margin:0 auto;height:52px;display:flex;align-items:center;justify-content:space-between}
+.nav-brand{display:flex;align-items:center;gap:10px}
+.nav-name{font-size:.72rem;font-weight:800;text-transform:uppercase;letter-spacing:.14em;color:var(--text2)}
+.nav-sep{width:1px;height:14px;background:var(--border)}
+.nav-sub{font-size:.76rem;color:var(--text2)}
+.sample-badge{display:inline-flex;align-items:center;gap:5px;background:rgba(255,209,102,.1);border:1px solid rgba(255,209,102,.3);color:var(--yellow);padding:3px 9px;border-radius:100px;font-size:.66rem;font-weight:700;text-transform:uppercase;letter-spacing:.06em}
+.live-dot{width:5px;height:5px;border-radius:50%;background:var(--yellow);animation:blink 1.6s infinite}
+@keyframes blink{0%,100%{opacity:1}50%{opacity:.35}}
+.tabs{display:flex;gap:3px}
+.tab{padding:5px 16px;border-radius:6px;border:none;background:transparent;color:var(--text2);font-family:inherit;font-size:.8rem;font-weight:600;cursor:pointer;transition:all .15s}
+.tab:hover{background:var(--surface-hover);color:var(--text)}
+.tab.on{background:var(--accent);color:#fff}
+
+/* WRAP */
+.wrap{max-width:1440px;margin:0 auto;padding:32px 40px 60px}
+.pg{display:none}.pg.on{display:block}
+
+/* DUMMY BANNER */
+.dbanner{display:flex;align-items:center;gap:10px;background:rgba(255,209,102,.06);border:1px solid rgba(255,209,102,.22);border-radius:8px;padding:9px 14px;margin-bottom:24px}
+.dbanner p{font-size:.76rem;color:var(--yellow)}
+.dbanner strong{font-weight:700}
+
+/* SECTION LABEL */
+.slabel{font-size:.65rem;font-weight:800;text-transform:uppercase;letter-spacing:.14em;color:var(--text3);margin-bottom:12px;display:flex;align-items:center;gap:10px}
+.slabel::after{content:'';flex:1;height:1px;background:var(--border)}
+
+/* KPI STRIP */
+.kpi-row{display:grid;grid-template-columns:repeat(5,1fr);gap:12px;margin-bottom:24px}
+.kpi{background:var(--surface);border:1px solid var(--border);border-radius:10px;padding:18px 16px;position:relative;overflow:hidden;transition:transform .18s,box-shadow .18s}
+.kpi::before{content:'';position:absolute;top:0;left:0;right:0;height:2.5px;background:var(--kc,var(--accent))}
+.kpi:hover{transform:translateY(-2px);box-shadow:0 6px 24px rgba(0,0,0,.13)}
+.kpi-lbl{font-size:.66rem;font-weight:700;text-transform:uppercase;letter-spacing:.08em;color:var(--text2);margin-bottom:5px}
+.kpi-val{font-size:2rem;font-weight:900;line-height:1;color:var(--kc,var(--accent));margin-bottom:3px}
+.kpi-sub{font-size:.7rem;color:var(--text2);line-height:1.4}
+.kpi-delta{font-size:.7rem;font-weight:700;margin-top:5px}
+.up{color:var(--green)}.dn{color:var(--red)}.neu{color:var(--text2)}
+
+/* GRID */
+.g2{display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-bottom:18px}
+.g3{display:grid;grid-template-columns:1fr 1fr 1fr;gap:16px;margin-bottom:18px}
+.g6040{display:grid;grid-template-columns:6fr 4fr;gap:16px;margin-bottom:18px}
+.g4060{display:grid;grid-template-columns:4fr 6fr;gap:16px;margin-bottom:18px}
+.g3545{display:grid;grid-template-columns:35fr 65fr;gap:16px;margin-bottom:18px}
+
+/* CARD */
+.card{background:var(--surface);border:1px solid var(--border);border-radius:12px;padding:20px;transition:box-shadow .18s}
+.card:hover{box-shadow:0 4px 20px rgba(0,0,0,.1)}
+.ct{font-size:.84rem;font-weight:700;color:var(--text);margin-bottom:3px}
+.cd{font-size:.72rem;color:var(--text2);margin-bottom:14px;line-height:1.5}
+
+/* CHART WRAP */
+.ch{position:relative}
+.h200{height:200px}.h240{height:240px}.h260{height:260px}.h280{height:280px}.h300{height:300px}.h320{height:320px}
+
+/* BEFORE/AFTER */
+.ba-wrap{display:flex;flex-direction:column;gap:11px;margin-top:4px}
+.ba-item-label{font-size:.7rem;font-weight:700;color:var(--text2);margin-bottom:5px;text-transform:uppercase;letter-spacing:.06em}
+.ba-row2{display:flex;align-items:center;gap:8px;margin-bottom:3px}
+.ba-tag{width:24px;font-size:.62rem;font-weight:700;text-transform:uppercase;letter-spacing:.04em;flex-shrink:0}
+.ba-track{flex:1;height:8px;background:var(--surface2);border-radius:4px;overflow:hidden;border:1px solid var(--border-sub)}
+.ba-fill{height:100%;border-radius:4px;transition:width 1.2s ease}
+.ba-num{width:48px;text-align:right;font-size:.74rem;font-weight:700;flex-shrink:0}
+.ba-badge{font-size:.64rem;font-weight:700;padding:2px 7px;border-radius:100px;flex-shrink:0}
+.badge-up{background:rgba(79,255,176,.14);color:var(--green)}
+.badge-dn{background:rgba(255,107,122,.12);color:var(--red)}
+.badge-neu{background:rgba(255,255,255,.07);color:var(--text2)}
+
+/* DISTRIBUTION BARS */
+.dist-item{margin-bottom:9px}
+.dist-header{display:flex;justify-content:space-between;margin-bottom:4px}
+.dist-hl{font-size:.72rem;color:var(--text2)}
+.dist-track2{height:14px;background:var(--surface2);border-radius:4px;overflow:hidden;position:relative;border:1px solid var(--border-sub)}
+.dist-a{position:absolute;top:0;left:0;height:100%;border-radius:4px;transition:width 1.2s ease}
+.dist-b{position:absolute;top:0;left:0;height:100%;border-radius:4px;opacity:.38;transition:width 1.2s ease}
+.dist-legend{display:flex;gap:14px;margin-bottom:10px}
+.dist-leg-item{display:flex;align-items:center;gap:5px;font-size:.7rem;color:var(--text2)}
+.dist-leg-dot{width:9px;height:9px;border-radius:2px;flex-shrink:0}
+
+/* INSIGHT BOX */
+.ins{background:var(--surface2);border-radius:8px;padding:12px 14px;margin-top:10px;border:1px solid var(--border-sub)}
+.ins-tag{font-size:.62rem;font-weight:800;text-transform:uppercase;letter-spacing:.1em;color:var(--text2);margin-bottom:5px}
+.ins p{font-size:.76rem;color:var(--text2);line-height:1.65}
+.ins strong{color:var(--accent);font-weight:700}
+
+/* FUNNEL VIZ */
+.fviz{display:flex;flex-direction:column;gap:5px;margin-top:8px}
+.frow{display:flex;align-items:center;gap:10px}
+.frow-lbl{width:76px;font-size:.74rem;font-weight:700;text-align:right;flex-shrink:0}
+.frow-bar-wrap{flex:1;position:relative}
+.frow-bar{height:40px;border-radius:6px;display:flex;align-items:center;padding:0 12px;font-size:.72rem;font-weight:700;color:#fff;min-width:80px;overflow:hidden;white-space:nowrap;transition:width 1.2s ease}
+.frow-num{width:72px;font-size:.74rem;font-weight:700;text-align:right;flex-shrink:0}
+.frow-pct{width:44px;font-size:.68rem;color:var(--text2);text-align:right;flex-shrink:0}
+.conv-lbl{font-size:.66rem;color:var(--text3);padding:2px 0 2px 90px}
+
+/* FUNNEL TABLE */
+.ftbl{width:100%;border-collapse:collapse}
+.ftbl th{font-size:.64rem;font-weight:700;text-transform:uppercase;letter-spacing:.07em;color:var(--text2);padding:8px 10px;border-bottom:1px solid var(--border);text-align:right}
+.ftbl th:first-child{text-align:left}
+.ftbl td{padding:11px 10px;border-bottom:1px solid var(--border-sub);font-size:.8rem;text-align:right;color:var(--text)}
+.ftbl td:first-child{text-align:left;font-weight:600}
+.ftbl tr:last-child td{border-bottom:none}
+.ftbl tr:hover td{background:var(--surface-hover)}
+.spill{display:inline-block;padding:2px 7px;border-radius:4px;font-size:.65rem;font-weight:700;margin-right:4px}
+.s0{background:rgba(140,140,170,.18);color:var(--text2)}
+.s1{background:rgba(139,143,255,.2);color:var(--l1)}
+.s2{background:rgba(79,195,247,.15);color:var(--l2)}
+.s3{background:rgba(255,209,102,.15);color:var(--l3)}
+.s4{background:rgba(79,255,176,.13);color:var(--l4)}
+
+/* LEG ROW */
+.leg-row{display:flex;gap:14px;flex-wrap:wrap;margin-bottom:10px}
+.leg{display:flex;align-items:center;gap:5px;font-size:.7rem;color:var(--text2)}
+.leg-dot{width:9px;height:9px;border-radius:2px;flex-shrink:0}
+
+/* ANIMATIONS */
+@keyframes fadeUp{from{opacity:0;transform:translateY(16px)}to{opacity:1;transform:translateY(0)}}
+.ani{animation:fadeUp .5s ease-out both}
+.d1{animation-delay:.05s}.d2{animation-delay:.1s}.d3{animation-delay:.15s}.d4{animation-delay:.2s}.d5{animation-delay:.25s}
+.rev{opacity:0;transform:translateY(14px);transition:opacity .55s ease,transform .55s ease}
+.rev.vis{opacity:1;transform:translateY(0)}
+@media(prefers-reduced-motion:reduce){*,*::before,*::after{animation:none!important;transition:none!important}.rev{opacity:1;transform:none}}
+
+/* PRINT */
+@media print{body{background:#fff!important;color:#000!important}.viz-menu,.nav{display:none!important}.rev{opacity:1!important;transform:none!important}*{print-color-adjust:exact;-webkit-print-color-adjust:exact}}
+
+/* MENU */
+.viz-menu{position:fixed;top:14px;right:14px;z-index:9999}
+.vmtoggle{width:38px;height:38px;border-radius:9px;background:var(--surface);border:1px solid var(--border);color:var(--text);cursor:pointer;display:flex;align-items:center;justify-content:center;transition:all .18s}
+.vmtoggle:hover{background:var(--surface-hover)}
+.vmdrop{position:absolute;top:44px;right:0;min-width:180px;background:var(--surface);border:1px solid var(--border);border-radius:10px;padding:6px;opacity:0;visibility:hidden;transform:translateY(-6px);transition:all .18s;backdrop-filter:blur(12px)}
+.vmdrop.on{opacity:1;visibility:visible;transform:translateY(0)}
+.vmdrop button{width:100%;padding:8px 12px;border:none;border-radius:6px;background:transparent;color:var(--text);font-size:.8rem;font-family:inherit;cursor:pointer;text-align:left;display:flex;align-items:center;gap:8px;transition:background .13s}
+.vmdrop button:hover{background:var(--surface-hover)}
+
+/* PLATFORM BOXES */
+.platform-row{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:14px}
+.pbox{background:var(--surface2);border:1px solid var(--border-sub);border-radius:8px;padding:14px;text-align:center}
+.pbox-lbl{font-size:.66rem;font-weight:700;text-transform:uppercase;letter-spacing:.08em;color:var(--text2);margin-bottom:6px}
+.pbox-val{font-size:1.8rem;font-weight:900;line-height:1;margin-bottom:3px}
+.pbox-sub{font-size:.7rem;color:var(--text2)}
+
+/* FUNNEL TABLE SCROLL */
+.ftbl-scroll{overflow-x:auto;-webkit-overflow-scrolling:touch;border-radius:8px}
+
+/* ── RESPONSIVE ── */
+
+/* Large desktop: no change */
+
+/* Medium desktop (max 1200px) */
+@media(max-width:1200px){
+  .wrap{padding:28px 28px 60px}
+}
+
+/* Tablet landscape (max 1100px) */
+@media(max-width:1100px){
+  .nav{padding:0 24px}
+  .wrap{padding:24px 24px 56px}
+  .kpi-row{grid-template-columns:repeat(3,1fr)}
+  .g6040,.g4060,.g3545{grid-template-columns:1fr;gap:12px}
+  .g6040 .card:first-child,.g4060 .card:last-child{margin-bottom:0}
+}
+
+/* Tablet portrait (max 900px) */
+@media(max-width:900px){
+  .nav{padding:0 20px}
+  .nav-in{height:auto;flex-direction:column;align-items:stretch;padding:10px 0 0}
+  .nav-brand{padding-bottom:10px}
+  .tabs{overflow-x:auto;-webkit-overflow-scrolling:touch;scrollbar-width:none;
+    padding-bottom:8px;gap:4px;flex-wrap:nowrap}
+  .tabs::-webkit-scrollbar{display:none}
+  .tab{flex-shrink:0;font-size:.76rem;padding:5px 14px}
+  .wrap{padding:20px 20px 52px}
+  .kpi-row{grid-template-columns:repeat(3,1fr);gap:10px}
+  .kpi-val{font-size:1.7rem}
+  .g2{gap:12px}
+  .g3{grid-template-columns:1fr 1fr;gap:12px}
+  .h280{height:240px}.h260{height:220px}.h240{height:210px}.h200{height:180px}
+}
+
+/* Mobile large (max 768px) */
+@media(max-width:768px){
+  .nav{padding:0 16px}
+  .nav-in{padding:10px 0 0}
+  .nav-brand{gap:7px}
+  .nav-sub{font-size:.7rem;max-width:200px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+  .wrap{padding:16px 14px 56px}
+  .kpi-row{grid-template-columns:repeat(2,1fr);gap:10px;margin-bottom:18px}
+  .kpi{padding:14px 12px}
+  .kpi-lbl{font-size:.6rem}
+  .kpi-val{font-size:1.55rem}
+  .kpi-sub{font-size:.64rem}
+  .kpi-delta{font-size:.63rem}
+  .slabel{font-size:.6rem;margin-bottom:10px}
+  .g2,.g3,.g6040,.g4060,.g3545{grid-template-columns:1fr;gap:12px;margin-bottom:14px}
+  .card{padding:16px 14px;border-radius:10px}
+  .ct{font-size:.8rem}
+  .cd{font-size:.68rem;margin-bottom:10px}
+  .h280{height:220px}.h260{height:200px}.h240{height:190px}.h200{height:170px}
+  /* BA bars */
+  .ba-item-label{font-size:.64rem}
+  .ba-row2{gap:6px}
+  .ba-num{width:44px;font-size:.68rem}
+  .ba-badge{font-size:.58rem;padding:2px 5px}
+  /* Dist */
+  .dist-header{flex-wrap:wrap;gap:2px}
+  .dist-hl{font-size:.66rem}
+  .dist-track2{height:12px}
+  /* Insight */
+  .ins{padding:10px 12px}
+  .ins p{font-size:.72rem}
+  /* Funnel viz */
+  .frow-lbl{width:58px;font-size:.68rem}
+  .frow-bar{height:34px;font-size:.66rem;padding:0 8px}
+  .frow-num{width:60px;font-size:.68rem}
+  .frow-pct{width:36px;font-size:.62rem}
+  .conv-lbl{padding-left:70px;font-size:.6rem}
+  /* Table — horizontal scroll */
+  .ftbl-scroll{overflow-x:auto;-webkit-overflow-scrolling:touch;border-radius:8px;
+    scrollbar-width:thin;scrollbar-color:var(--border) transparent}
+  .ftbl-scroll::-webkit-scrollbar{height:4px}
+  .ftbl-scroll::-webkit-scrollbar-track{background:transparent}
+  .ftbl-scroll::-webkit-scrollbar-thumb{background:var(--border);border-radius:2px}
+  .ftbl{min-width:520px}
+  /* Platform boxes */
+  .platform-row{gap:10px}
+  /* Dbanner */
+  .dbanner{padding:9px 12px;align-items:flex-start}
+  .dbanner p{font-size:.7rem}
+  /* Leg */
+  .leg{font-size:.64rem}
+  .leg-dot{width:8px;height:8px}
+  /* Spill */
+  .spill{font-size:.6rem;padding:2px 5px}
+  /* Menu - move to FAB bottom-right on mobile */
+  .viz-menu{top:auto;bottom:16px;right:16px}
+  .vmtoggle{width:44px;height:44px;border-radius:50%;
+    background:var(--accent);border:none;color:#fff;
+    box-shadow:0 4px 20px rgba(108,99,255,.45)}
+  .vmdrop{top:auto;bottom:52px}
+}
+
+/* Mobile small (max 480px) */
+@media(max-width:480px){
+  .nav-brand{gap:5px}
+  .nav-name{font-size:.66rem;letter-spacing:.1em}
+  .nav-sub{display:none}
+  .sample-badge{font-size:.58rem;padding:2px 7px}
+  .wrap{padding:14px 12px 60px}
+  .kpi-row{grid-template-columns:repeat(2,1fr);gap:8px}
+  .kpi{padding:12px 10px}
+  .kpi-val{font-size:1.4rem}
+  .kpi-lbl{font-size:.58rem;letter-spacing:.06em}
+  .kpi-sub{font-size:.61rem;line-height:1.3}
+  .kpi-delta{font-size:.61rem;margin-top:3px}
+  .card{padding:14px 12px;border-radius:9px;margin-bottom:0}
+  .ct{font-size:.78rem}
+  .cd{font-size:.66rem}
+  .h280{height:200px}.h260{height:185px}.h240{height:175px}.h200{height:155px}
+  /* Tighter BA bars */
+  .ba-wrap{gap:9px}
+  .ba-track{height:7px}
+  .ba-num{width:40px;font-size:.65rem}
+  /* Funnel */
+  .frow-lbl{width:52px;font-size:.64rem}
+  .frow-bar{height:30px;font-size:.62rem;min-width:48px}
+  .frow-num{width:52px;font-size:.64rem}
+  .frow-pct{width:32px;font-size:.58rem}
+  .conv-lbl{padding-left:62px}
+  .ftbl{min-width:460px}
+  /* Section label */
+  .slabel{font-size:.57rem;letter-spacing:.1em}
+  /* Insight */
+  .ins{padding:9px 10px}
+  .ins p{font-size:.68rem}
+  .ins-tag{font-size:.57rem}
+  /* Dist */
+  .dist-track2{height:11px}
+  .dist-hl{font-size:.63rem}
+  /* Tab scroll hint */
+  .tabs::after{content:'';display:block;width:20px;flex-shrink:0}
+}
+
+/* Mobile XS (max 375px) */
+@media(max-width:375px){
+  body{overflow-x:hidden}
+  .kpi-row{gap:7px}
+  .kpi{padding:11px 9px}
+  .kpi-val{font-size:1.3rem}
+  .wrap{padding:12px 10px 60px}
+  .tabs{padding-bottom:6px}
+  .tab{font-size:.72rem;padding:5px 11px}
+  .card{padding:12px 10px}
+}
+</style>
+</head>
+<body>
+
+<!-- MENU -->
+<div class="viz-menu">
+  <button class="vmtoggle" onclick="toggleMenu()" aria-label="메뉴">
+    <svg width="18" height="18" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><line x1="3" y1="5" x2="17" y2="5"/><line x1="3" y1="10" x2="17" y2="10"/><line x1="3" y1="15" x2="17" y2="15"/></svg>
+  </button>
+  <div class="vmdrop" id="vmd">
+    <button onclick="cycleTheme()"><span id="tIcon">🌙</span><span id="tLabel">Dark Mode</span></button>
+    <button onclick="dlImg()"><span>📥</span><span>PNG 다운로드</span></button>
+    <button onclick="window.print()"><span>🖨️</span><span>Print / PDF</span></button>
+  </div>
+</div>
+
+<!-- NAV -->
+<nav class="nav">
+  <div class="nav-in">
+    <div class="nav-brand">
+      <span class="nav-name">FCO Esports</span>
+      <div class="nav-sep"></div>
+      <span class="nav-sub">Phase 2 · 계정연동 실시청자 분석</span>
+      <span class="sample-badge" style="margin-left:8px"><span class="live-dot"></span>Sample Data</span>
+    </div>
+    <div class="tabs">
+      <button class="tab on" onclick="showTab('t1',this)">유저 가치 &amp; 과금</button>
+      <button class="tab" onclick="showTab('t2',this)">퍼널 분석</button>
+      <span style="display:inline-block;width:12px;flex-shrink:0"></span>
+    </div>
+  </div>
+</nav>
+
+<main id="main-content">
+<div class="wrap">
+
+<!-- ===== TAB 1 ===== -->
+<section id="t1" class="pg on" aria-label="유저 가치 및 과금 분석">
+
+  <div class="dbanner ani">
+    <span style="font-size:14px">⚠️</span>
+    <p><strong>예시 대시보드입니다.</strong> 아래 수치는 SOOP · 치지직 계정연동 완료 후 실시청자 데이터로 자동 업데이트될 구조를 보여주는 더미 데이터입니다.</p>
+  </div>
+
+  <!-- KPI -->
+  <div class="slabel">핵심 요약 지표 · 2026 FSL SUMMER 시즌 (예시)</div>
+  <div class="kpi-row">
+    <div class="kpi ani d1" style="--kc:var(--accent)">
+      <div class="kpi-lbl">실시청자 (계정연동)</div>
+      <div class="kpi-val" data-count="187400">—</div>
+      <div class="kpi-sub">SOOP + 치지직 합산</div>
+      <div class="kpi-delta up">↑ +12.3% vs Phase 1 추정</div>
+    </div>
+    <div class="kpi ani d2" style="--kc:var(--green)">
+      <div class="kpi-lbl">pLTV 실측 배수</div>
+      <div class="kpi-val" data-count="382" data-div="100">—</div>
+      <div class="kpi-sub">일반 유저 대비 · 수수료 제외 기준</div>
+      <div class="kpi-delta up">↑ +0.08x vs 추정값 (3.74x)</div>
+    </div>
+    <div class="kpi ani d3" style="--kc:var(--yellow)">
+      <div class="kpi-lbl">시청자 평균 ARPU</div>
+      <div class="kpi-val" data-count="163200" data-fmt="krw">—</div>
+      <div class="kpi-sub">원 / 분석 기간 기준</div>
+      <div class="kpi-delta up">↑ +6.8% vs Phase 1 (₩152,784)</div>
+    </div>
+    <div class="kpi ani d4" style="--kc:var(--accent2)">
+      <div class="kpi-lbl">D+14 리텐션</div>
+      <div class="kpi-val" data-count="4930" data-div="100" data-suffix="%">—</div>
+      <div class="kpi-sub">시청 이벤트 후 기준</div>
+      <div class="kpi-delta up">↑ +2.2%p vs Phase 1 추정</div>
+    </div>
+    <div class="kpi ani d5" style="--kc:var(--purple)">
+      <div class="kpi-lbl">시청→플레이 전환율</div>
+      <div class="kpi-val" data-count="6840" data-div="100" data-suffix="%">—</div>
+      <div class="kpi-sub">시청 당일 인게임 접속 기준</div>
+      <div class="kpi-delta neu">→ 신규 지표 · 기준선 설정 중</div>
+    </div>
+  </div>
+
+  <!-- ROW1: pLTV 비교 + 과금 분포 -->
+  <div class="slabel rev">pLTV 가치 비교 · 그룹별 분석</div>
+  <div class="g6040 rev">
+    <div class="card">
+      <div class="ct">그룹별 pLTV 비교 (비시청자 = 1.0x 기준)</div>
+      <div class="cd">실시청자 전체·퍼널 단계별·시청 시간별 세그먼트 비교 · 수수료 제외 순매출 기준</div>
+      <div class="ch h280"><canvas id="c_pltv" role="img" aria-label="그룹별 pLTV 배수 비교"></canvas></div>
+      <div class="ins">
+        <div class="ins-tag">💡 Key Insight</div>
+        <p>실시청자 기준 pLTV <strong>3.82x</strong>로 Phase 1 추정값(3.74x) 검증 완료. 시청 100h+ 코어 팬은 <strong>5.1x</strong>까지 상승하며 하드코어 팬 집중 전략의 유효성 입증.</p>
+      </div>
+    </div>
+    <div class="card">
+      <div class="ct">과금 구간별 유저 분포</div>
+      <div class="cd">시청자 vs 비시청자 · 각 구간 내 비중 비교</div>
+      <div class="dist-legend">
+        <div class="dist-leg-item"><div class="dist-leg-dot" style="background:var(--accent)"></div>e스포츠 시청자</div>
+        <div class="dist-leg-item"><div class="dist-leg-dot" style="background:var(--text2);opacity:.5"></div>비시청자</div>
+      </div>
+      <div class="dist-item">
+        <div class="dist-header"><span class="dist-hl">무과금</span><span class="dist-hl" style="color:var(--red)">시청 8% / 비시청 31%</span></div>
+        <div class="dist-track2">
+          <div class="dist-a" style="width:31%;background:var(--text2);opacity:.4"></div>
+          <div class="dist-a" style="width:8%;background:var(--accent)"></div>
+        </div>
+      </div>
+      <div class="dist-item">
+        <div class="dist-header"><span class="dist-hl">~₩5만</span><span class="dist-hl">시청 14% / 비시청 24%</span></div>
+        <div class="dist-track2">
+          <div class="dist-a" style="width:24%;background:var(--text2);opacity:.4"></div>
+          <div class="dist-a" style="width:14%;background:var(--accent)"></div>
+        </div>
+      </div>
+      <div class="dist-item">
+        <div class="dist-header"><span class="dist-hl">₩5~15만</span><span class="dist-hl">시청 22% / 비시청 19%</span></div>
+        <div class="dist-track2">
+          <div class="dist-a" style="width:19%;background:var(--text2);opacity:.4"></div>
+          <div class="dist-a" style="width:22%;background:var(--accent)"></div>
+        </div>
+      </div>
+      <div class="dist-item">
+        <div class="dist-header"><span class="dist-hl">₩15~30만</span><span class="dist-hl" style="color:var(--green)">시청 28% / 비시청 16%</span></div>
+        <div class="dist-track2">
+          <div class="dist-a" style="width:16%;background:var(--text2);opacity:.4"></div>
+          <div class="dist-a" style="width:28%;background:var(--accent)"></div>
+        </div>
+      </div>
+      <div class="dist-item">
+        <div class="dist-header"><span class="dist-hl">₩30만+</span><span class="dist-hl" style="color:var(--green)">시청 28% / 비시청 10%</span></div>
+        <div class="dist-track2">
+          <div class="dist-a" style="width:10%;background:var(--text2);opacity:.4"></div>
+          <div class="dist-a" style="width:28%;background:var(--green)"></div>
+        </div>
+      </div>
+      <div class="ins">
+        <div class="ins-tag">💡 Key Insight</div>
+        <p>₩30만+ 헤비 과금 유저 비중이 시청자 <strong>28%</strong> vs 비시청자 <strong>10%</strong>로 <strong>2.8배 차이</strong>. 무과금 비중은 시청자 집단에서 31%→8%로 급감.</p>
+      </div>
+    </div>
+  </div>
+
+  <!-- ROW2: 시청 전후 행동량 + 시청 시간별 ARPU -->
+  <div class="slabel rev">시청 전후 행동량 변화 · Before &amp; After (동일 유저 D-14 vs D+14)</div>
+  <div class="g2 rev">
+    <div class="card">
+      <div class="ct">인게임 핵심 행동 Before / After</div>
+      <div class="cd">계정연동 이후 동일 유저 시청 시작 D-14 기준값 → D+14 변화 비교</div>
+      <div style="display:flex;gap:12px;margin-bottom:10px">
+        <div class="leg"><div class="leg-dot" style="background:var(--text2)"></div>시청 전 (D-14)</div>
+        <div class="leg"><div class="leg-dot" style="background:var(--accent)"></div>시청 후 (D+14)</div>
+      </div>
+      <div class="ba-wrap">
+        <!-- 접속률 -->
+        <div>
+          <div class="ba-item-label">접속률</div>
+          <div class="ba-row2"><span class="ba-tag t2">전</span><div class="ba-track"><div class="ba-fill" style="width:54%;background:var(--text2);opacity:.6"></div></div><span class="ba-num t2">54%</span></div>
+          <div class="ba-row2"><span class="ba-tag" style="color:var(--accent)">후</span><div class="ba-track"><div class="ba-fill" style="width:87%;background:var(--accent)"></div></div><span class="ba-num" style="color:var(--accent)">87%</span><span class="ba-badge badge-up">+61%</span></div>
+        </div>
+        <!-- 공식경기 -->
+        <div>
+          <div class="ba-item-label">공식경기 1v1 (시간)</div>
+          <div class="ba-row2"><span class="ba-tag t2">전</span><div class="ba-track"><div class="ba-fill" style="width:45%;background:var(--text2);opacity:.6"></div></div><span class="ba-num t2">22h</span></div>
+          <div class="ba-row2"><span class="ba-tag" style="color:var(--accent)">후</span><div class="ba-track"><div class="ba-fill" style="width:84%;background:var(--accent)"></div></div><span class="ba-num" style="color:var(--accent)">41h</span><span class="ba-badge badge-up">+86%</span></div>
+        </div>
+        <!-- 이적시장 -->
+        <div>
+          <div class="ba-item-label">이적시장 이용 횟수</div>
+          <div class="ba-row2"><span class="ba-tag t2">전</span><div class="ba-track"><div class="ba-fill" style="width:42%;background:var(--text2);opacity:.6"></div></div><span class="ba-num t2">168</span></div>
+          <div class="ba-row2"><span class="ba-tag" style="color:var(--accent)">후</span><div class="ba-track"><div class="ba-fill" style="width:100%;background:var(--accent)"></div></div><span class="ba-num" style="color:var(--accent)">397</span><span class="ba-badge badge-up">+136%</span></div>
+        </div>
+        <!-- 강화 -->
+        <div>
+          <div class="ba-item-label">강화 시도 횟수</div>
+          <div class="ba-row2"><span class="ba-tag t2">전</span><div class="ba-track"><div class="ba-fill" style="width:45%;background:var(--text2);opacity:.6"></div></div><span class="ba-num t2">52</span></div>
+          <div class="ba-row2"><span class="ba-tag" style="color:var(--accent)">후</span><div class="ba-track"><div class="ba-fill" style="width:100%;background:var(--accent)"></div></div><span class="ba-num" style="color:var(--accent)">116</span><span class="ba-badge badge-up">+123%</span></div>
+        </div>
+        <!-- 스쿼드 -->
+        <div>
+          <div class="ba-item-label">스쿼드 변경 횟수</div>
+          <div class="ba-row2"><span class="ba-tag t2">전</span><div class="ba-track"><div class="ba-fill" style="width:41%;background:var(--text2);opacity:.6"></div></div><span class="ba-num t2">22</span></div>
+          <div class="ba-row2"><span class="ba-tag" style="color:var(--accent)">후</span><div class="ba-track"><div class="ba-fill" style="width:100%;background:var(--accent)"></div></div><span class="ba-num" style="color:var(--accent)">54</span><span class="ba-badge badge-up">+145%</span></div>
+        </div>
+        <!-- 플레이타임 -->
+        <div>
+          <div class="ba-item-label">플레이타임 (DT)</div>
+          <div class="ba-row2"><span class="ba-tag t2">전</span><div class="ba-track"><div class="ba-fill" style="width:68%;background:var(--text2);opacity:.6"></div></div><span class="ba-num t2">5,004</span></div>
+          <div class="ba-row2"><span class="ba-tag" style="color:var(--accent)">후</span><div class="ba-track"><div class="ba-fill" style="width:100%;background:var(--accent)"></div></div><span class="ba-num" style="color:var(--accent)">7,355</span><span class="ba-badge badge-up">+47%</span></div>
+        </div>
+        <!-- 과금 -->
+        <div>
+          <div class="ba-item-label">과금 ARPU (원)</div>
+          <div class="ba-row2"><span class="ba-tag t2">전</span><div class="ba-track"><div class="ba-fill" style="width:51%;background:var(--text2);opacity:.6"></div></div><span class="ba-num t2">83,200</span></div>
+          <div class="ba-row2"><span class="ba-tag" style="color:var(--accent)">후</span><div class="ba-track"><div class="ba-fill" style="width:100%;background:var(--accent)"></div></div><span class="ba-num" style="color:var(--accent)">163,200</span><span class="ba-badge badge-up">+96%</span></div>
+        </div>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="ct">시청 누적 시간별 ARPU 변화</div>
+      <div class="cd">시청 시간이 길수록 과금 수준 비선형 상승 · 20h 구간이 핵심 전환 임계점</div>
+      <div class="ch h260"><canvas id="c_watch" role="img" aria-label="시청 시간별 ARPU 변화"></canvas></div>
+      <div class="ins">
+        <div class="ins-tag">💡 Key Insight</div>
+        <p>시청 <strong>20시간</strong> 이후 ARPU 가파른 급등 구간 진입. 5h 미만 대비 100h+ 시청자 ARPU는 <strong>2.4배</strong>. 캐주얼 팬의 20h 돌파 유도가 핵심 레버.</p>
+      </div>
+    </div>
+  </div>
+
+  <!-- ROW3: 리텐션 + ARPU 추이 -->
+  <div class="slabel rev">리텐션 추이 · 월별 과금 트렌드</div>
+  <div class="g2 rev">
+    <div class="card">
+      <div class="ct">D+7 / D+14 / D+30 리텐션 비교</div>
+      <div class="cd">시청 이벤트 참여 기준 · 계정연동 실시청자 코호트 vs 대조군 vs 비시청자</div>
+      <div class="ch h240"><canvas id="c_ret" role="img" aria-label="리텐션 비교 차트"></canvas></div>
+      <div class="ins">
+        <div class="ins-tag">💡 Key Insight</div>
+        <p>D+30 기준 시청자 리텐션 <strong>38.4%</strong> vs 비시청자 <strong>14.6%</strong>. 장기 리텐션 격차가 D+7보다 더 크게 벌어지는 구조 확인 — 이탈 방어막 효과 검증.</p>
+      </div>
+    </div>
+    <div class="card">
+      <div class="ct">월별 평균 ARPU 추이 · 시청자 vs 비시청자</div>
+      <div class="cd">계정연동 이후 6개월 추적 · ★ 빅매치 시점 표시</div>
+      <div class="ch h240"><canvas id="c_arpu" role="img" aria-label="월별 ARPU 추이 차트"></canvas></div>
+      <div class="ins">
+        <div class="ins-tag">💡 Key Insight</div>
+        <p>결승전(5월) 시점에 시청자 ARPU가 <strong>+₩23,000</strong> 급등. 빅매치 연계 이벤트가 과금 행동을 즉각 자극하는 효과 확인. 정규 시즌 중간에도 편차 유지.</p>
+      </div>
+    </div>
+  </div>
+
+</section>
+
+<!-- ===== TAB 2 ===== -->
+<section id="t2" class="pg" aria-label="퍼널 분석">
+
+  <div class="dbanner ani">
+    <span style="font-size:14px">⚠️</span>
+    <p><strong>예시 대시보드입니다.</strong> 퍼널 단계 분류는 계정연동 후 실시청자 점수(Score 1~71+점)로 자동화됩니다. 아래는 더미 데이터 구조 예시입니다.</p>
+  </div>
+
+  <!-- KPI -->
+  <div class="slabel">퍼널 전체 요약 · 단계별 유저 수</div>
+  <div class="kpi-row">
+    <div class="kpi ani d1" style="--kc:var(--text2)">
+      <div class="kpi-lbl">노출 · 전체 활성유저</div>
+      <div class="kpi-val" data-count="1240000">—</div>
+      <div class="kpi-sub">월 플레이타임 30h+ 기준 모집단</div>
+      <div class="kpi-delta neu">→ 기준점</div>
+    </div>
+    <div class="kpi ani d2" style="--kc:var(--l1)">
+      <div class="kpi-lbl">진입 · Level 1</div>
+      <div class="kpi-val" data-count="187400">—</div>
+      <div class="kpi-sub">전환율 15.1% · 첫 시청 60분+</div>
+      <div class="kpi-delta up">↑ pLTV ~1.3x</div>
+    </div>
+    <div class="kpi ani d3" style="--kc:var(--l2)">
+      <div class="kpi-lbl">참여 · Level 2</div>
+      <div class="kpi-val" data-count="89200">—</div>
+      <div class="kpi-sub">전환율 47.6% · 승부예측 정기 참여</div>
+      <div class="kpi-delta up">↑ pLTV ~1.8x</div>
+    </div>
+    <div class="kpi ani d4" style="--kc:var(--l3)">
+      <div class="kpi-lbl">몰입 · Level 3 ⭐</div>
+      <div class="kpi-val" data-count="32600">—</div>
+      <div class="kpi-sub">전환율 36.5% · ROI 최대 구간</div>
+      <div class="kpi-delta" style="color:var(--yellow)">★ pLTV ~2.6x</div>
+    </div>
+    <div class="kpi ani d5" style="--kc:var(--l4)">
+      <div class="kpi-lbl">충성 · Level 4</div>
+      <div class="kpi-val" data-count="9800">—</div>
+      <div class="kpi-sub">전환율 30.1% · 최상위 코호트</div>
+      <div class="kpi-delta up">↑ pLTV 3.82x</div>
+    </div>
+  </div>
+
+  <!-- ROW1: 퍼널 바 + 단계별 지표 테이블 -->
+  <div class="slabel rev">퍼널 단계별 유저 수 및 전환율</div>
+  <div class="g3545 rev">
+    <div class="card">
+      <div class="ct">단계별 유저 수 드롭다운</div>
+      <div class="cd">전체 활성유저 → 충성 팬까지의 전환 흐름</div>
+      <div class="fviz">
+        <div style="display:flex;gap:10px;align-items:center;margin-bottom:4px">
+          <div style="width:76px;font-size:.62rem;color:var(--text2);font-weight:700;text-align:right">단계</div>
+          <div style="flex:1"></div>
+          <div style="width:72px;font-size:.62rem;color:var(--text2);font-weight:700;text-align:right">유저 수</div>
+          <div style="width:44px;font-size:.62rem;color:var(--text2);font-weight:700;text-align:right">비중</div>
+        </div>
+        <div class="frow">
+          <div class="frow-lbl t2">노출</div>
+          <div class="frow-bar-wrap"><div class="frow-bar" style="width:100%;background:var(--text2)">1,240,000</div></div>
+          <div class="frow-num">1,240,000</div><div class="frow-pct">100%</div>
+        </div>
+        <div class="conv-lbl">↓ 전환 15.1%</div>
+        <div class="frow">
+          <div class="frow-lbl" style="color:var(--l1)">진입 L1</div>
+          <div class="frow-bar-wrap"><div class="frow-bar" style="width:57%;background:var(--l1)">187,400</div></div>
+          <div class="frow-num">187,400</div><div class="frow-pct">15.1%</div>
+        </div>
+        <div class="conv-lbl">↓ 전환 47.6%</div>
+        <div class="frow">
+          <div class="frow-lbl" style="color:var(--l2)">참여 L2</div>
+          <div class="frow-bar-wrap"><div class="frow-bar" style="width:38%;background:var(--l2)">89,200</div></div>
+          <div class="frow-num">89,200</div><div class="frow-pct">7.2%</div>
+        </div>
+        <div class="conv-lbl">↓ 전환 36.5%</div>
+        <div class="frow">
+          <div class="frow-lbl" style="color:var(--l3)">몰입 L3</div>
+          <div class="frow-bar-wrap"><div class="frow-bar" style="width:22%;background:var(--l3)">32,600</div></div>
+          <div class="frow-num">32,600</div><div class="frow-pct">2.6%</div>
+        </div>
+        <div class="conv-lbl">↓ 전환 30.1%</div>
+        <div class="frow">
+          <div class="frow-lbl" style="color:var(--l4)">충성 L4</div>
+          <div class="frow-bar-wrap"><div class="frow-bar" style="width:10%;min-width:68px;background:var(--l4)">9,800</div></div>
+          <div class="frow-num">9,800</div><div class="frow-pct">0.8%</div>
+        </div>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="ct">퍼널 단계별 핵심 지표 비교</div>
+      <div class="cd">유저 수 · 평균 ARPU · pLTV · 접속률 · 행동량 요약</div>
+      <div class="ftbl-scroll">
+      <table class="ftbl">
+        <thead>
+          <tr><th>단계</th><th>유저 수</th><th>ARPU</th><th>pLTV</th><th>접속률</th><th>강화/이적</th></tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td><span class="spill s0">비시청</span>일반 유저</td>
+            <td>–</td><td>₩78,520</td>
+            <td style="font-weight:700">1.0x</td><td>35.4%</td><td>51 / 210</td>
+          </tr>
+          <tr>
+            <td><span class="spill s1">L1</span>진입</td>
+            <td>187,400</td><td>₩98,400</td>
+            <td style="font-weight:700;color:var(--l1)">1.3x</td><td>62.1%</td><td>68 / 241</td>
+          </tr>
+          <tr>
+            <td><span class="spill s2">L2</span>참여</td>
+            <td>89,200</td><td>₩121,600</td>
+            <td style="font-weight:700;color:var(--l2)">1.8x</td><td>74.8%</td><td>88 / 318</td>
+          </tr>
+          <tr style="background:rgba(255,209,102,.04)">
+            <td><span class="spill s3">L3</span>몰입 ⭐</td>
+            <td>32,600</td><td>₩148,200</td>
+            <td style="font-weight:700;color:var(--l3)">2.6x</td><td>83.4%</td><td>112 / 374</td>
+          </tr>
+          <tr>
+            <td><span class="spill s4">L4</span>충성</td>
+            <td>9,800</td><td>₩163,200</td>
+            <td style="font-weight:700;color:var(--l4)">3.82x</td><td>89.2%</td><td>128 / 411</td>
+          </tr>
+        </tbody>
+      </table>
+      </div>
+      <div class="ins">
+        <div class="ins-tag">💡 전환 우선순위</div>
+        <p>L2(참여) → L3(몰입) 전환 시 ARPU <strong>+₩26,600</strong>, pLTV <strong>+0.8x</strong> 상승. 결승·빅매치 시점 집중 개입이 ROI 최대 구간. L3→L4는 VIP 오프라인 콘텐츠 + 커뮤니티 귀속감 전략.</p>
+      </div>
+    </div>
+  </div>
+
+  <!-- ROW2: 퍼널별 행동량 레이더 + 시청 시간별 분포/pLTV -->
+  <div class="slabel rev">퍼널별 행동 패턴 상세 분석</div>
+  <div class="g2 rev">
+    <div class="card">
+      <div class="ct">퍼널 단계별 주요 행동량 비교 (레이더)</div>
+      <div class="cd">접속률 · 공식경기 · 이적시장 · 강화 · 스쿼드 변경 5개 지표 · 비시청자=30 기준</div>
+      <div class="leg-row">
+        <div class="leg"><div class="leg-dot" style="background:#888888"></div>비시청자</div>
+        <div class="leg"><div class="leg-dot" style="background:#8B8FFF"></div>L1 진입</div>
+        <div class="leg"><div class="leg-dot" style="background:#4FC3F7"></div>L2 참여</div>
+        <div class="leg"><div class="leg-dot" style="background:#FFD166"></div>L3 몰입</div>
+        <div class="leg"><div class="leg-dot" style="background:#4FFFB0"></div>L4 충성</div>
+      </div>
+      <div class="ch h280"><canvas id="c_radar" role="img" aria-label="퍼널별 행동량 레이더 차트"></canvas></div>
+    </div>
+    <div class="card">
+      <div class="ct">시청 시간 구간별 유저 수 &amp; pLTV 배수</div>
+      <div class="cd">막대: 유저 수(명) · 라인: pLTV 배수 (우측 Y축) · 20h 이후 비선형 급등</div>
+      <div class="ch h280"><canvas id="c_fpltv" role="img" aria-label="시청 시간별 유저 수와 pLTV 분포"></canvas></div>
+      <div class="ins">
+        <div class="ins-tag">💡 Key Insight</div>
+        <p>시청 <strong>20~50h</strong> 구간에서 pLTV 상승률이 가장 가파름. 전체 시청자의 약 21%가 이 구간에 집중 → 해당 유저의 L3 전환이 최우선 레버.</p>
+      </div>
+    </div>
+  </div>
+
+  <!-- ROW3: 전환율 흐름 + 시청 플랫폼 분포 -->
+  <div class="slabel rev">퍼널 전환율 &amp; 플랫폼 분포</div>
+  <div class="g2 rev">
+    <div class="card">
+      <div class="ct">단계별 누적 전환율 추이</div>
+      <div class="cd">전체 활성유저 대비 각 퍼널 단계 도달 비율 · 시즌 빅매치 시점 강조</div>
+      <div class="ch h260"><canvas id="c_conv" role="img" aria-label="퍼널 전환율 추이 차트"></canvas></div>
+    </div>
+    <div class="card">
+      <div class="ct">시청 플랫폼별 유저 분포 &amp; pLTV</div>
+      <div class="cd">SOOP vs 치지직 · 플랫폼별 유저 수 및 평균 pLTV 비교</div>
+      <div class="platform-row">
+        <div class="pbox">
+          <div class="pbox-lbl">SOOP</div>
+          <div class="pbox-val" style="color:var(--accent)">114,200</div>
+          <div class="pbox-sub">60.9% · pLTV 4.02x</div>
+        </div>
+        <div class="pbox">
+          <div class="pbox-lbl">치지직</div>
+          <div class="pbox-val" style="color:var(--green)">73,200</div>
+          <div class="pbox-sub">39.1% · pLTV 3.48x</div>
+        </div>
+      </div>
+      <div class="ch h180"><canvas id="c_platform" role="img" aria-label="플랫폼별 유저 분포 및 pLTV 차트"></canvas></div>
+      <div class="ins" style="margin-top:10px">
+        <div class="ins-tag">💡 Key Insight</div>
+        <p>SOOP 유저 pLTV가 치지직 대비 <strong>+0.54x</strong> 높음. SOOP 유저의 L3·L4 비중이 더 높아 플랫폼별 맞춤 전략 유효. 치지직은 신규 팬 진입 채널로 활용 권장.</p>
+      </div>
+    </div>
+  </div>
+
+</section>
+</div>
+</main>
+
+<script>
+var cInst={};
+var chartsBuilt=false;
+var curTheme='dark';
+
+function toggleMenu(){var d=document.getElementById('vmd');if(d)d.classList.toggle('on')}
+document.addEventListener('click',function(e){if(!e.target.closest('.viz-menu')){var d=document.getElementById('vmd');if(d)d.classList.remove('on')}});
+
+function applyTheme(t){
+  document.documentElement.className='theme-'+t;
+  var i=document.getElementById('tIcon'),l=document.getElementById('tLabel');
+  if(i)i.textContent=t==='dark'?'🌙':'☀️';
+  if(l)l.textContent=t==='dark'?'Dark Mode':'Light Mode';
+  localStorage.setItem('viz-theme',t);
+  curTheme=t;
+  chartsBuilt=false;
+  buildCharts();
+}
+function cycleTheme(){applyTheme(curTheme==='dark'?'light':'dark')}
+var saved=localStorage.getItem('viz-theme');
+var prefersDark=window.matchMedia('(prefers-color-scheme:dark)').matches;
+curTheme=saved||(prefersDark?'dark':'light');
+applyTheme(curTheme);
+
+function showTab(id,btn){
+  document.querySelectorAll('.pg').forEach(function(s){s.classList.remove('on')});
+  document.querySelectorAll('.tab').forEach(function(b){b.classList.remove('on')});
+  document.getElementById(id).classList.add('on');
+  btn.classList.add('on');
+  chartsBuilt=false;
+  setTimeout(buildCharts,60);
+}
+
+// scroll reveal
+document.querySelectorAll('[class*="rev"]').forEach(function(el){el.classList.add('rev')});
+var rObs=new IntersectionObserver(function(entries){entries.forEach(function(e){if(e.isIntersecting){e.target.classList.add('vis');rObs.unobserve(e.target)}})},{threshold:.08});
+document.querySelectorAll('.rev').forEach(function(el){rObs.observe(el)});
+
+// counters
+function animateCounters(){
+  document.querySelectorAll('[data-count]').forEach(function(el){
+    if(el.dataset.counted)return;
+    el.dataset.counted='1';
+    var raw=parseFloat(el.dataset.count);
+    var div=parseFloat(el.dataset.div||'1');
+    var suf=el.dataset.suffix||'';
+    var fmt=el.dataset.fmt||'';
+    var start=performance.now(),dur=1400;
+    (function tick(now){
+      var p=Math.min((now-start)/dur,1),e=1-Math.pow(1-p,3),v=(raw*e)/div;
+      var out;
+      if(fmt==='krw')out='₩'+Math.round(v).toLocaleString();
+      else if(div!==1)out=v.toFixed(2)+suf;
+      else out=Math.round(v).toLocaleString()+suf;
+      el.textContent=out;
+      if(p<1)requestAnimationFrame(tick);
+    })(start);
+  });
+}
+var cEl=document.querySelector('[data-count]');
+if(cEl){var cObs=new IntersectionObserver(function(entries){entries.forEach(function(e){if(e.isIntersecting){animateCounters();cObs.disconnect()}})},{threshold:.2});cObs.observe(cEl)}
+
+// ── CHART COLORS ──
+function gc(){
+  var dk=document.documentElement.classList.contains('theme-dark');
+  return{
+    accent:dk?'#7C6FFF':'#5B50E0',
+    accent2:dk?'#4FC3F7':'#0088BB',
+    green:dk?'#4FFFB0':'#008F5E',
+    red:dk?'#FF6B7A':'#D02030',
+    yellow:dk?'#FFD166':'#B07000',
+    purple:dk?'#C084FC':'#7730C8',
+    l1:dk?'#8B8FFF':'#6062CC',
+    l2:dk?'#4FC3F7':'#0088BB',
+    l3:dk?'#FFD166':'#B07000',
+    l4:dk?'#4FFFB0':'#008F5E',
+    gray:dk?'#8888AA':'#9090B8',
+    text:dk?'#E8E8F0':'#111128',
+    text2:dk?'#8888AA':'#5A5A8A',
+    border:dk?'rgba(108,99,255,0.16)':'rgba(100,90,240,0.13)',
+    surf:dk?'#13131F':'#FFFFFF',
+  };
+}
+
+function safeKill(id){if(cInst[id]){try{cInst[id].destroy()}catch(e){}delete cInst[id]}}
+
+function baseOpts(c){
+  return{
+    responsive:true,maintainAspectRatio:false,
+    plugins:{
+      tooltip:{enabled:true},
+      legend:{labels:{color:c.text,font:{family:"'Noto Sans KR',sans-serif",size:11},padding:12}}
+    }
+  };
+}
+
+function buildCharts(){
+  if(typeof Chart==='undefined'){console.error('Chart.js missing');return}
+  if(chartsBuilt)return;
+  var c=gc();
+  var t1=document.getElementById('t1').classList.contains('on');
+  var t2=document.getElementById('t2').classList.contains('on');
+
+  if(t1){
+    // pLTV 비교 bar
+    safeKill('c_pltv');
+    var ctx=document.getElementById('c_pltv');
+    if(ctx){
+      cInst['c_pltv']=new Chart(ctx,{
+        type:'bar',
+        data:{
+          labels:['비시청자\n(기준)','유사\n대조군','시청자\n(전체)','L1\n진입','L2\n참여','L3\n몰입','L4\n충성','시청\n100h+'],
+          datasets:[{
+            label:'pLTV 배수',
+            data:[1.0,1.42,3.82,1.3,1.8,2.6,3.82,5.1],
+            backgroundColor:[c.gray+'88',c.accent2+'99',c.accent,c.l1+'BB',c.l2+'BB',c.l3+'CC',c.l4+'CC',c.purple],
+            borderRadius:8,borderSkipped:false,
+          }]
+        },
+        options:Object.assign({},baseOpts(c),{
+          plugins:{tooltip:{enabled:true,callbacks:{label:function(ctx){return' pLTV '+ctx.raw+'x'}}},legend:{display:false}},
+          scales:{
+            x:{ticks:{color:c.text2,font:{size:10}},grid:{color:c.border}},
+            y:{ticks:{color:c.text2,callback:function(v){return v+'x'}},grid:{color:c.border},
+              title:{display:true,text:'pLTV 배수 (비시청자=1.0x)',color:c.text2,font:{size:10}}}
+          }
+        })
+      });
+    }
+
+    // 시청 시간별 ARPU
+    safeKill('c_watch');
+    var ctx2=document.getElementById('c_watch');
+    if(ctx2){
+      cInst['c_watch']=new Chart(ctx2,{
+        type:'line',
+        data:{
+          labels:['~5h','5~10h','10~20h','20~30h','30~50h','50~100h','100h+'],
+          datasets:[{
+            label:'평균 ARPU (원)',
+            data:[84200,96800,112400,138600,155800,174200,198600],
+            borderColor:c.accent,backgroundColor:c.accent+'22',
+            pointBackgroundColor:[c.accent,c.accent,c.accent,c.yellow,c.yellow,c.l4,c.l4],
+            pointRadius:[4,4,4,7,5,5,6],borderWidth:2.5,fill:true,tension:.4,
+          }]
+        },
+        options:Object.assign({},baseOpts(c),{
+          plugins:{tooltip:{enabled:true,callbacks:{label:function(ctx){return' ₩'+Math.round(ctx.raw).toLocaleString()}}},legend:{display:false}},
+          scales:{
+            x:{ticks:{color:c.text2,font:{size:10}},grid:{color:c.border}},
+            y:{ticks:{color:c.text2,callback:function(v){return'₩'+(v/10000).toFixed(0)+'만'}},grid:{color:c.border}}
+          }
+        })
+      });
+    }
+
+    // 리텐션 bar
+    safeKill('c_ret');
+    var ctx3=document.getElementById('c_ret');
+    if(ctx3){
+      cInst['c_ret']=new Chart(ctx3,{
+        type:'bar',
+        data:{
+          labels:['D+7','D+14','D+30'],
+          datasets:[
+            {label:'e스포츠 시청자',data:[50.1,49.3,38.4],backgroundColor:c.accent,borderRadius:6},
+            {label:'유사 대조군',data:[29.1,26.9,21.2],backgroundColor:c.accent2+'BB',borderRadius:6},
+            {label:'비시청자 평균',data:[22.4,19.8,14.6],backgroundColor:c.gray+'66',borderRadius:6},
+          ]
+        },
+        options:Object.assign({},baseOpts(c),{
+          scales:{
+            x:{ticks:{color:c.text2},grid:{color:c.border}},
+            y:{ticks:{color:c.text2,callback:function(v){return v+'%'}},grid:{color:c.border},max:60}
+          }
+        })
+      });
+    }
+
+    // ARPU 월별 추이
+    safeKill('c_arpu');
+    var ctx4=document.getElementById('c_arpu');
+    if(ctx4){
+      cInst['c_arpu']=new Chart(ctx4,{
+        type:'line',
+        data:{
+          labels:['1월','2월','3월','4월','5월★','6월','7월'],
+          datasets:[
+            {
+              label:'시청자 ARPU',
+              data:[148200,152800,143600,158400,174800,169200,163200],
+              borderColor:c.accent,backgroundColor:c.accent+'18',
+              pointBackgroundColor:[c.accent,c.accent,c.accent,c.accent,c.yellow,c.accent,c.accent],
+              pointRadius:[4,4,4,4,9,4,4],borderWidth:2.5,fill:true,tension:.4,
+            },
+            {
+              label:'비시청자 ARPU',
+              data:[76800,78200,74400,79600,81200,78800,80400],
+              borderColor:c.gray,backgroundColor:'transparent',
+              pointBackgroundColor:c.gray,pointRadius:4,borderWidth:2,
+              borderDash:[5,3],fill:false,tension:.4,
+            }
+          ]
+        },
+        options:Object.assign({},baseOpts(c),{
+          plugins:{tooltip:{enabled:true,callbacks:{label:function(ctx){return' ₩'+Math.round(ctx.raw).toLocaleString()}}},
+            legend:{labels:{color:c.text,font:{family:"'Noto Sans KR',sans-serif",size:11}}}},
+          scales:{
+            x:{ticks:{color:c.text2,font:{size:11}},grid:{color:c.border}},
+            y:{ticks:{color:c.text2,callback:function(v){return'₩'+(v/10000).toFixed(0)+'만'}},grid:{color:c.border}}
+          }
+        })
+      });
+    }
+  }
+
+  if(t2){
+    // 레이더
+    safeKill('c_radar');
+    var ctx5=document.getElementById('c_radar');
+    if(ctx5){
+      cInst['c_radar']=new Chart(ctx5,{
+        type:'radar',
+        data:{
+          labels:['접속률','공식경기\n참여시간','이적시장\n이용','강화\n시도','스쿼드\n변경'],
+          datasets:[
+            {label:'비시청자',data:[35,30,35,32,30],borderColor:c.gray,backgroundColor:c.gray+'18',borderWidth:1.5,pointRadius:3,borderDash:[4,3]},
+            {label:'L1 진입',data:[62,55,50,52,48],borderColor:c.l1,backgroundColor:c.l1+'14',borderWidth:2,pointRadius:3},
+            {label:'L2 참여',data:[75,70,67,68,65],borderColor:c.l2,backgroundColor:c.l2+'10',borderWidth:2,pointRadius:3},
+            {label:'L3 몰입',data:[83,84,82,85,86],borderColor:c.l3,backgroundColor:c.l3+'10',borderWidth:2.5,pointRadius:4},
+            {label:'L4 충성',data:[89,95,91,93,96],borderColor:c.l4,backgroundColor:c.l4+'12',borderWidth:2.5,pointRadius:5},
+          ]
+        },
+        options:Object.assign({},baseOpts(c),{
+          plugins:{legend:{labels:{color:c.text,font:{family:"'Noto Sans KR',sans-serif",size:10},padding:10}}},
+          scales:{r:{
+            ticks:{color:c.text2,backdropColor:'transparent',font:{size:10},stepSize:20},
+            grid:{color:c.border},angleLines:{color:c.border},
+            pointLabels:{color:c.text2,font:{size:10}},min:0,max:100
+          }}
+        })
+      });
+    }
+
+    // 시청 시간별 유저수 + pLTV
+    safeKill('c_fpltv');
+    var ctx6=document.getElementById('c_fpltv');
+    if(ctx6){
+      cInst['c_fpltv']=new Chart(ctx6,{
+        type:'bar',
+        data:{
+          labels:['~5h','5~10h','10~20h','20~30h','30~50h','50~100h','100h+'],
+          datasets:[
+            {type:'bar',label:'유저 수',data:[52400,44800,38200,22600,16400,8800,3800],
+              backgroundColor:c.accent+'66',borderRadius:6,yAxisID:'y',order:2},
+            {type:'line',label:'pLTV 배수',data:[1.1,1.4,1.9,2.6,3.2,3.9,5.1],
+              borderColor:c.l4,backgroundColor:'transparent',
+              pointBackgroundColor:c.l4,pointRadius:5,borderWidth:2.5,
+              yAxisID:'y2',tension:.4,order:1},
+          ]
+        },
+        options:Object.assign({},baseOpts(c),{
+          plugins:{tooltip:{enabled:true},legend:{labels:{color:c.text,font:{family:"'Noto Sans KR',sans-serif",size:11}}}},
+          scales:{
+            x:{ticks:{color:c.text2,font:{size:10}},grid:{color:c.border}},
+            y:{type:'linear',position:'left',
+              ticks:{color:c.text2,callback:function(v){return(v/1000).toFixed(0)+'K'}},
+              grid:{color:c.border},title:{display:true,text:'유저 수',color:c.text2,font:{size:10}}},
+            y2:{type:'linear',position:'right',
+              ticks:{color:c.l4,callback:function(v){return v+'x'}},
+              grid:{drawOnChartArea:false},title:{display:true,text:'pLTV 배수',color:c.l4,font:{size:10}}}
+          }
+        })
+      });
+    }
+
+    // 전환율 추이
+    safeKill('c_conv');
+    var ctx7=document.getElementById('c_conv');
+    if(ctx7){
+      cInst['c_conv']=new Chart(ctx7,{
+        type:'line',
+        data:{
+          labels:['1월','2월','3월','4월','5월★','6월','7월'],
+          datasets:[
+            {label:'L1 진입률',data:[13.2,14.1,13.8,15.0,18.4,16.2,15.1],borderColor:c.l1,backgroundColor:c.l1+'14',pointRadius:4,borderWidth:2,fill:false,tension:.4},
+            {label:'L2 참여율',data:[5.8,6.4,6.1,7.0,9.2,8.1,7.2],borderColor:c.l2,backgroundColor:c.l2+'10',pointRadius:4,borderWidth:2,fill:false,tension:.4},
+            {label:'L3 몰입율',data:[1.8,2.0,1.9,2.4,3.6,2.9,2.6],borderColor:c.l3,backgroundColor:'transparent',pointRadius:4,borderWidth:2,fill:false,tension:.4},
+            {label:'L4 충성율',data:[0.5,0.6,0.6,0.7,1.1,0.9,0.8],borderColor:c.l4,backgroundColor:'transparent',pointRadius:4,borderWidth:2.5,fill:false,tension:.4},
+          ]
+        },
+        options:Object.assign({},baseOpts(c),{
+          plugins:{tooltip:{enabled:true,callbacks:{label:function(ctx){return' '+ctx.dataset.label+': '+ctx.raw+'%'}}},
+            legend:{labels:{color:c.text,font:{family:"'Noto Sans KR',sans-serif",size:11}}}},
+          scales:{
+            x:{ticks:{color:c.text2,font:{size:11}},grid:{color:c.border}},
+            y:{ticks:{color:c.text2,callback:function(v){return v+'%'}},grid:{color:c.border},
+              title:{display:true,text:'전체 활성유저 대비 비율',color:c.text2,font:{size:10}}}
+          }
+        })
+      });
+    }
+
+    // 플랫폼별
+    safeKill('c_platform');
+    var ctx8=document.getElementById('c_platform');
+    if(ctx8){
+      cInst['c_platform']=new Chart(ctx8,{
+        type:'bar',
+        data:{
+          labels:['L1 진입','L2 참여','L3 몰입','L4 충성'],
+          datasets:[
+            {label:'SOOP',data:[112400,54800,20600,6400],backgroundColor:c.accent+'CC',borderRadius:6},
+            {label:'치지직',data:[75000,34400,12000,3400],backgroundColor:c.l4+'99',borderRadius:6},
+          ]
+        },
+        options:Object.assign({},baseOpts(c),{
+          plugins:{tooltip:{enabled:true,callbacks:{label:function(ctx){return' '+ctx.dataset.label+': '+Math.round(ctx.raw).toLocaleString()+'명'}}},
+            legend:{labels:{color:c.text,font:{family:"'Noto Sans KR',sans-serif",size:11}}}},
+          scales:{
+            x:{ticks:{color:c.text2,font:{size:11}},grid:{color:c.border}},
+            y:{ticks:{color:c.text2,callback:function(v){return(v/1000).toFixed(0)+'K'}},grid:{color:c.border}}
+          }
+        })
+      });
+    }
+  }
+
+  chartsBuilt=true;
+}
+
+window.addEventListener('load',function(){setTimeout(buildCharts,80)});
+
+async function dlImg(){
+  var m=document.querySelector('.viz-menu');
+  m.style.display='none';
+  try{
+    var url=await htmlToImage.toPng(document.body,{quality:1,pixelRatio:2});
+    var a=document.createElement('a');a.href=url;a.download='fco-phase2-dashboard.png';a.click();
+  }catch(e){console.error(e)}
+  m.style.display='';
+}
+</script>
+</body>
+</html>
